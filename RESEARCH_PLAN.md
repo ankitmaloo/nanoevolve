@@ -426,9 +426,10 @@ All code is in the nanoevolve repository. The key entry points:
 - [EVOLUTION_STRATEGY.md](adamopt/EVOLUTION_STRATEGY.md) — staged search plan (DSL first → real evaluation → long runs → code mutation)
 - [WIN_HIERARCHY.md](adamopt/WIN_HIERARCHY.md) — what counts as a win and how wins are ranked
 - [checkpoint.md](checkpoint.md) — current project state and what's verified
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute (search runs, DSL extensions, analysis)
 
 ---
 
 ## Contact
 
-For questions, collaboration, or compute sponsorship inquiries, please reach out to the project maintainer.
+For questions, collaboration, or compute sponsorship inquiries, please reach out to me at ankit@clioapp.ai
