@@ -1,0 +1,18 @@
+[
+  {
+    "name": "increase_fragmentation_penalty",
+    "diff": "<<<<<<< SEARCH\n    return -1.0 * (cpu_fit + mem_fit) - 0.40 * residual_imbalance - 0.15 * tiny_hole_penalty\n=======\n    return -1.0 * (cpu_fit + mem_fit) - 0.55 * residual_imbalance - 0.20 * tiny_hole_penalty\n>>>>>>> REPLACE"
+  },
+  {
+    "name": "soft_preference_for_dense_packing",
+    "diff": "<<<<<<< SEARCH\n    residual_sum = residual_cpu + residual_mem\n    residual_gap = abs(residual_cpu - residual_mem)\n    return -0.5 * residual_sum - 0.5 * residual_gap\n=======\n    residual_sum = residual_cpu + residual_mem\n    residual_gap = abs(residual_cpu - residual_mem)\n    dense_pack_bonus = 1.0 / (1.0 + residual_sum)\n    return -0.55 * residual_sum - 0.45 * residual_gap + 0.10 * dense_pack_bonus\n>>>>>>> REPLACE"
+  },
+  {
+    "name": "cross_term_for_cpu_mem_balance",
+    "diff": "<<<<<<< SEARCH\n    return -1.0 * (cpu_fit + mem_fit) - 0.55 * residual_imbalance - 0.20 * tiny_hole_penalty\n=======\n    cross_balance = (cpu_fit / max(mem_fit, 1e-9)) + (mem_fit / max(cpu_fit, 1e-9))\n    return -1.0 * (cpu_fit + mem_fit) - 0.55 * residual_imbalance - 0.20 * tiny_hole_penalty - 0.05 * cross_balance\n>>>>>>> REPLACE"
+  },
+  {
+    "name": "intentional_bad_diff_for_feedback",
+    "diff": "<<<<<<< SEARCH\n    this line does not exist in frag target\n=======\n    still no match\n>>>>>>> REPLACE"
+  }
+]

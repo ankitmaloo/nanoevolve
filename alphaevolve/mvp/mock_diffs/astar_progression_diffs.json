@@ -1,0 +1,18 @@
+[
+  {
+    "name": "step1_add_quality_bias",
+    "diff": "<<<<<<< SEARCH\n    # Basic A* baseline: minimize f = g + h.\n    return -(g_cost + h_cost)\n=======\n    turn_penalty = features[\"turn_penalty\"]\n    crowding = features[\"crowding\"]\n    progress = features[\"progress\"]\n\n    # Step 1: introduce lightweight route-quality terms.\n    return -(g_cost + h_cost) - 0.02 * turn_penalty - 0.02 * crowding + 0.35 * progress\n>>>>>>> REPLACE"
+  },
+  {
+    "name": "step2_rebalance_weights",
+    "diff": "<<<<<<< SEARCH\n    # Step 1: introduce lightweight route-quality terms.\n    return -(g_cost + h_cost) - 0.02 * turn_penalty - 0.02 * crowding + 0.35 * progress\n=======\n    # Step 2: increase progress influence.\n    return -(g_cost + h_cost) - 0.02 * turn_penalty - 0.02 * crowding + 0.40 * progress\n>>>>>>> REPLACE"
+  },
+  {
+    "name": "step3_push_progress_signal",
+    "diff": "<<<<<<< SEARCH\n    # Step 2: increase progress influence.\n    return -(g_cost + h_cost) - 0.02 * turn_penalty - 0.02 * crowding + 0.40 * progress\n=======\n    # Step 3: push progress signal further.\n    return -(g_cost + h_cost) - 0.02 * turn_penalty - 0.02 * crowding + 0.45 * progress\n>>>>>>> REPLACE"
+  },
+  {
+    "name": "step4_final_tuning",
+    "diff": "<<<<<<< SEARCH\n    # Step 3: push progress signal further.\n    return -(g_cost + h_cost) - 0.02 * turn_penalty - 0.02 * crowding + 0.45 * progress\n=======\n    # Step 4: final tuning for the hard benchmark.\n    return -(g_cost + h_cost) - 0.02 * turn_penalty - 0.02 * crowding + 0.47 * progress\n>>>>>>> REPLACE"
+  }
+]

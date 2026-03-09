@@ -1,0 +1,18 @@
+[
+  {
+    "name": "add_routing_bias_terms",
+    "diff": "<<<<<<< SEARCH\n    # Basic A* baseline: minimize f = g + h.\n    return -(g_cost + h_cost)\n=======\n    turn_penalty = features[\"turn_penalty\"]\n    crowding = features[\"crowding\"]\n    progress = features[\"progress\"]\n\n    # Add route-quality bias terms while preserving A* structure.\n    return -(g_cost + h_cost) - 0.15 * turn_penalty - 0.35 * crowding + 0.20 * progress\n>>>>>>> REPLACE"
+  },
+  {
+    "name": "add_tie_break_for_smoother_paths",
+    "diff": "<<<<<<< SEARCH\ndef tie_break_priority(features):\n    return 0.0\n=======\ndef tie_break_priority(features):\n    # Prefer straighter, forward-progressing moves when f-scores tie.\n    return -0.45 * features[\"turn_penalty\"] + 0.35 * features[\"progress\"]\n>>>>>>> REPLACE"
+  },
+  {
+    "name": "refine_progress_weight",
+    "diff": "<<<<<<< SEARCH\n    # Add route-quality bias terms while preserving A* structure.\n    return -(g_cost + h_cost) - 0.15 * turn_penalty - 0.35 * crowding + 0.20 * progress\n=======\n    # Refine trade-off toward expansion efficiency and route smoothness.\n    return -(g_cost + h_cost) - 0.20 * turn_penalty - 0.40 * crowding + 0.25 * progress\n>>>>>>> REPLACE"
+  },
+  {
+    "name": "intentional_bad_diff_for_feedback",
+    "diff": "<<<<<<< SEARCH\n    definitely_not_present_line\n=======\n    still_not_present\n>>>>>>> REPLACE"
+  }
+]

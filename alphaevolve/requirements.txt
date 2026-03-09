@@ -1,0 +1,6 @@
+google-genai>=1.51.0
+openai>=1.0.0
+numpy>=1.26
+pypdf>=4.2
+pytest>=8.2
+rich>=13.7

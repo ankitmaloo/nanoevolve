@@ -1,0 +1,19 @@
+name = "optimizer_lab"
+kind = "composite"
+
+[paths]
+adamopt = "adamopt"
+nanochat = "nanochat"
+alphaevolve = "alphaevolve"
+
+[roles]
+control_plane = "adamopt"
+training_substrate = "nanochat"
+evolution_code = "alphaevolve"
+
+[entrypoints]
+search_cli = "adamopt/scripts/search_optimizer.py"
+strategy = "adamopt/EVOLUTION_STRATEGY.md"
+win_hierarchy = "adamopt/WIN_HIERARCHY.md"
+optimizer_routing = "nanochat/nanochat/gpt.py"
+optimizer_math = "nanochat/nanochat/optim.py"

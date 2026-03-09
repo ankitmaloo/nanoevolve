@@ -1,0 +1,10 @@
+__pycache__
+
+.venv
+
+.env
+
+*runs/
+
+*openai_examples/
+*gemini_examples/
