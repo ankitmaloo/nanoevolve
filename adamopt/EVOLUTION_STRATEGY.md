@@ -24,7 +24,7 @@ Goal:
 What changes:
 
 - no mutation yet
-- only the baseline spec in [`optim_search/spec.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/spec.py)
+- only the baseline spec in [`optim_search/spec.py`](./optim_search/spec.py)
 
 What must be true:
 
@@ -34,11 +34,11 @@ What must be true:
 
 Files involved:
 
-- [`optim_search/spec.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/spec.py)
-- [`optim_search/candidate_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/candidate_optimizer.py)
-- [`optim_search/eval_candidate.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/eval_candidate.py)
-- [`tests/test_candidate_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/tests/test_candidate_optimizer.py)
-- [`tests/test_eval_repro.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/tests/test_eval_repro.py)
+- [`optim_search/spec.py`](./optim_search/spec.py)
+- [`optim_search/candidate_optimizer.py`](./optim_search/candidate_optimizer.py)
+- [`optim_search/eval_candidate.py`](./optim_search/eval_candidate.py)
+- [`tests/test_candidate_optimizer.py`](./tests/test_candidate_optimizer.py)
+- [`tests/test_eval_repro.py`](./tests/test_eval_repro.py)
 
 ### Stage 1: DSL Evolution Only
 
@@ -59,17 +59,17 @@ Allowed mutations:
 
 These mutations are implemented in:
 
-- [`optim_search/mutations.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/mutations.py)
+- [`optim_search/mutations.py`](./optim_search/mutations.py)
 
 The search space is defined by:
 
-- [`optim_search/spec.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/spec.py)
+- [`optim_search/spec.py`](./optim_search/spec.py)
 
 The tournament logic is owned by:
 
-- [`optim_search/tournament.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/tournament.py)
-- [`optim_search/score.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/score.py)
-- [`optim_search/archive.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/archive.py)
+- [`optim_search/tournament.py`](./optim_search/tournament.py)
+- [`optim_search/score.py`](./optim_search/score.py)
+- [`optim_search/archive.py`](./optim_search/archive.py)
 
 What must be true before leaving this stage:
 
@@ -99,8 +99,8 @@ The difference is that the evaluator now runs real NanoChat training logic.
 
 Expected ownership:
 
-- [`optim_search/eval_candidate.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/eval_candidate.py) becomes the real NanoChat short-run harness
-- [`scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py) becomes the default automation entrypoint for spec search
+- [`optim_search/eval_candidate.py`](./optim_search/eval_candidate.py) becomes the real NanoChat short-run harness
+- [`scripts/search_optimizer.py`](./scripts/search_optimizer.py) becomes the default automation entrypoint for spec search
 
 ### Stage 3: Full Training Promotion
 
@@ -130,15 +130,15 @@ Goal:
 
 This means:
 
-- patching [`nanochat/nanochat/optim.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat/nanochat/optim.py)
-- patching [`nanochat/nanochat/gpt.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat/nanochat/gpt.py)
+- patching [`nanochat/nanochat/optim.py`](../nanochat/nanochat/optim.py)
+- patching [`nanochat/nanochat/gpt.py`](../nanochat/nanochat/gpt.py)
 
 Code mutation infrastructure already exists in:
 
-- [`optim_search/command_mutator.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/command_mutator.py)
-- [`optim_search/validation.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/validation.py)
-- [`optim_search/deployment.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/deployment.py)
-- [`optim_search/autonomous.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/autonomous.py)
+- [`optim_search/command_mutator.py`](./optim_search/command_mutator.py)
+- [`optim_search/validation.py`](./optim_search/validation.py)
+- [`optim_search/deployment.py`](./optim_search/deployment.py)
+- [`optim_search/autonomous.py`](./optim_search/autonomous.py)
 
 These should not be the default search path in earlier stages.
 
@@ -156,7 +156,7 @@ Input:
 
 Action:
 
-- mutate parent spec through [`optim_search/mutations.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/mutations.py)
+- mutate parent spec through [`optim_search/mutations.py`](./optim_search/mutations.py)
 
 Output:
 
@@ -208,8 +208,8 @@ Action:
 
 Owned by:
 
-- [`optim_search/score.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/score.py)
-- [`optim_search/tournament.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/tournament.py)
+- [`optim_search/score.py`](./optim_search/score.py)
+- [`optim_search/tournament.py`](./optim_search/tournament.py)
 
 Recommended initial bounds:
 
@@ -298,25 +298,25 @@ That command should do all of the following:
 
 The current building blocks already exist, but they need to be made the default path:
 
-- [`optim_search/spec.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/spec.py)
-- [`optim_search/mutations.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/mutations.py)
-- [`optim_search/tournament.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/tournament.py)
-- [`optim_search/archive.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/archive.py)
-- [`optim_search/score.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/score.py)
-- [`scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py)
+- [`optim_search/spec.py`](./optim_search/spec.py)
+- [`optim_search/mutations.py`](./optim_search/mutations.py)
+- [`optim_search/tournament.py`](./optim_search/tournament.py)
+- [`optim_search/archive.py`](./optim_search/archive.py)
+- [`optim_search/score.py`](./optim_search/score.py)
+- [`scripts/search_optimizer.py`](./scripts/search_optimizer.py)
 
 ## Which Files To Run
 
 Today:
 
 - baseline compare:
-  - [`scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py) `compare`
+  - [`scripts/search_optimizer.py`](./scripts/search_optimizer.py) `compare`
 - toy tournament:
-  - [`scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py) `tournament`
+  - [`scripts/search_optimizer.py`](./scripts/search_optimizer.py) `tournament`
 
 Intended default path:
 
-- one spec-search command in [`scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py) that runs:
+- one spec-search command in [`scripts/search_optimizer.py`](./scripts/search_optimizer.py) that runs:
   - generation creation
   - short-run evaluation
   - ranking
@@ -325,10 +325,10 @@ Intended default path:
 
 Code-mutation commands should stay separate until the evaluator is solid:
 
-- [`scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py) `patch-code`
-- [`scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py) `validate-code`
-- [`scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py) `deploy-code`
-- [`scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py) `autonomous-run`
+- [`scripts/search_optimizer.py`](./scripts/search_optimizer.py) `patch-code`
+- [`scripts/search_optimizer.py`](./scripts/search_optimizer.py) `validate-code`
+- [`scripts/search_optimizer.py`](./scripts/search_optimizer.py) `deploy-code`
+- [`scripts/search_optimizer.py`](./scripts/search_optimizer.py) `autonomous-run`
 
 ## Promotion Rule of Thumb
 

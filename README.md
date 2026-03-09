@@ -1,15 +1,15 @@
-# Optimizer Lab
+# NanoEvolve
 
 This folder defines the composite project that combines:
 
-- [`adamopt`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt)
-- [`nanochat`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat)
-- [`alphaevolve`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/alphaevolve)
+- [`adamopt`](./adamopt)
+- [`nanochat`](./nanochat)
+- [`alphaevolve`](./alphaevolve)
 
 The intended structure is:
 
 ```text
-optimizer_lab/
+nanoevolve/
   adamopt/
   alphaevolve/
   nanochat/
@@ -24,7 +24,7 @@ Where:
 
 ### AdamOpt
 
-Owned in [`adamopt`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt):
+Owned in [`adamopt`](./adamopt):
 
 - bounded optimizer DSL
 - spec mutation
@@ -36,7 +36,7 @@ Owned in [`adamopt`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adam
 
 ### NanoChat
 
-Owned in [`nanochat`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat):
+Owned in [`nanochat`](./nanochat):
 
 - real optimizer split
 - real model implementation
@@ -45,7 +45,7 @@ Owned in [`nanochat`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nan
 
 ### Evolution Code
 
-Owned in [`alphaevolve`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/alphaevolve):
+Owned in [`alphaevolve`](./alphaevolve):
 
 - prior evolution-agent experiments
 - MVP evolutionary scaffolding
@@ -64,17 +64,17 @@ The correct mental model is:
 
 Spec-search and evaluation entrypoints live in:
 
-- [`adamopt/scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py)
+- [`adamopt/scripts/search_optimizer.py`](./adamopt/scripts/search_optimizer.py)
 
 Training substrate and optimizer patch targets live in:
 
-- [`nanochat/nanochat/gpt.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat/nanochat/gpt.py)
-- [`nanochat/nanochat/optim.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat/nanochat/optim.py)
+- [`nanochat/nanochat/gpt.py`](./nanochat/nanochat/gpt.py)
+- [`nanochat/nanochat/optim.py`](./nanochat/nanochat/optim.py)
 
 Strategy documents live in:
 
-- [`adamopt/EVOLUTION_STRATEGY.md`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/EVOLUTION_STRATEGY.md)
-- [`adamopt/WIN_HIERARCHY.md`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/WIN_HIERARCHY.md)
+- [`adamopt/EVOLUTION_STRATEGY.md`](./adamopt/EVOLUTION_STRATEGY.md)
+- [`adamopt/WIN_HIERARCHY.md`](./adamopt/WIN_HIERARCHY.md)
 
 ## Composite Workflow
 
@@ -89,4 +89,4 @@ The intended default workflow is:
 
 The machine-readable composite layout is stored in:
 
-- [`workspace.toml`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/workspace.toml)
+- [`workspace.toml`](./workspace.toml)

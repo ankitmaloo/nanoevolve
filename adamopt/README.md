@@ -4,12 +4,12 @@ AdamOpt is a constrained optimizer-search lab built from the AlphaEvolve MVP pat
 
 The staged search plan is documented in:
 
-- [`EVOLUTION_STRATEGY.md`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/EVOLUTION_STRATEGY.md)
-- [`WIN_HIERARCHY.md`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/WIN_HIERARCHY.md)
+- [`EVOLUTION_STRATEGY.md`](./EVOLUTION_STRATEGY.md)
+- [`WIN_HIERARCHY.md`](./WIN_HIERARCHY.md)
 
 The composite workspace that pairs `adamopt/` with `nanochat/` is documented in:
 
-- [`../README.md`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/README.md)
+- [`../README.md`](../README.md)
 
 Phase 1 focuses on one thing only:
 
@@ -21,7 +21,7 @@ The code ships with a deterministic toy backend that mirrors NanoChat's paramete
 
 A local NanoChat fork is now available at:
 
-- `/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat`
+- `../nanochat`
 
 ## Layout
 

@@ -1,4 +1,4 @@
-name = "optimizer_lab"
+name = "nanoevolve"
 kind = "composite"
 
 [paths]

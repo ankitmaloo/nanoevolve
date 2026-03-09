@@ -1,14 +1,14 @@
-# Optimizer Lab Checkpoint
+# NanoEvolve Checkpoint
 
 This file captures the current project state for the composite repo rooted at:
 
-- [`optimizer_lab`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab)
+- [`nanoevolve`](./)
 
 Current subdirectories:
 
-- [`adamopt`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt)
-- [`nanochat`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat)
-- [`alphaevolve`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/alphaevolve)
+- [`adamopt`](./adamopt)
+- [`nanochat`](./nanochat)
+- [`alphaevolve`](./alphaevolve)
 
 ## Project Shape
 
@@ -20,8 +20,8 @@ The intended project model is:
 
 This is documented in:
 
-- [`README.md`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/README.md)
-- [`workspace.toml`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/workspace.toml)
+- [`README.md`](./README.md)
+- [`workspace.toml`](./workspace.toml)
 
 ## Core Strategic Decision
 
@@ -36,8 +36,8 @@ The current intended progression is:
 
 The strategy and win criteria are documented in:
 
-- [`adamopt/EVOLUTION_STRATEGY.md`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/EVOLUTION_STRATEGY.md)
-- [`adamopt/WIN_HIERARCHY.md`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/WIN_HIERARCHY.md)
+- [`adamopt/EVOLUTION_STRATEGY.md`](./adamopt/EVOLUTION_STRATEGY.md)
+- [`adamopt/WIN_HIERARCHY.md`](./adamopt/WIN_HIERARCHY.md)
 
 ## What Is Implemented
 
@@ -45,7 +45,7 @@ The strategy and win criteria are documented in:
 
 Implemented in:
 
-- [`adamopt/optim_search/spec.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/spec.py)
+- [`adamopt/optim_search/spec.py`](./adamopt/optim_search/spec.py)
 
 This now supports:
 
@@ -72,7 +72,7 @@ These are combined through a smooth gate and bounded actuator ranges rather than
 
 Implemented in:
 
-- [`adamopt/optim_search/candidate_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/candidate_optimizer.py)
+- [`adamopt/optim_search/candidate_optimizer.py`](./adamopt/optim_search/candidate_optimizer.py)
 
 What it does:
 
@@ -86,7 +86,7 @@ What it does:
 
 Implemented in:
 
-- [`adamopt/optim_search/mutations.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/mutations.py)
+- [`adamopt/optim_search/mutations.py`](./adamopt/optim_search/mutations.py)
 
 Current mutation coverage includes:
 
@@ -107,7 +107,7 @@ Current mutation coverage includes:
 
 Implemented in:
 
-- [`adamopt/optim_search/eval_candidate.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/eval_candidate.py)
+- [`adamopt/optim_search/eval_candidate.py`](./adamopt/optim_search/eval_candidate.py)
 
 Current status:
 
@@ -133,8 +133,8 @@ Returned metrics include:
 
 Implemented in:
 
-- [`adamopt/optim_search/score.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/score.py)
-- [`adamopt/optim_search/tournament.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/tournament.py)
+- [`adamopt/optim_search/score.py`](./adamopt/optim_search/score.py)
+- [`adamopt/optim_search/tournament.py`](./adamopt/optim_search/tournament.py)
 
 Current scoring logic now explicitly models:
 
@@ -150,9 +150,9 @@ The win hierarchy is persisted into candidate records and promotion records thro
 
 Implemented in:
 
-- [`adamopt/optim_search/tournament.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/tournament.py)
-- [`adamopt/optim_search/archive.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/archive.py)
-- [`adamopt/scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py)
+- [`adamopt/optim_search/tournament.py`](./adamopt/optim_search/tournament.py)
+- [`adamopt/optim_search/archive.py`](./adamopt/optim_search/archive.py)
+- [`adamopt/scripts/search_optimizer.py`](./adamopt/scripts/search_optimizer.py)
 
 Current behavior:
 
@@ -168,10 +168,10 @@ Current behavior:
 
 Implemented but not intended as the default early-stage search path:
 
-- [`adamopt/optim_search/command_mutator.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/command_mutator.py)
-- [`adamopt/optim_search/validation.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/validation.py)
-- [`adamopt/optim_search/deployment.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/deployment.py)
-- [`adamopt/optim_search/autonomous.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/autonomous.py)
+- [`adamopt/optim_search/command_mutator.py`](./adamopt/optim_search/command_mutator.py)
+- [`adamopt/optim_search/validation.py`](./adamopt/optim_search/validation.py)
+- [`adamopt/optim_search/deployment.py`](./adamopt/optim_search/deployment.py)
+- [`adamopt/optim_search/autonomous.py`](./adamopt/optim_search/autonomous.py)
 
 What exists:
 
@@ -189,8 +189,8 @@ Important:
 
 Current NanoChat integration points are:
 
-- [`nanochat/nanochat/gpt.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat/nanochat/gpt.py)
-- [`nanochat/nanochat/optim.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/nanochat/nanochat/optim.py)
+- [`nanochat/nanochat/gpt.py`](./nanochat/nanochat/gpt.py)
+- [`nanochat/nanochat/optim.py`](./nanochat/nanochat/optim.py)
 
 The identified low-touch patch points are:
 
@@ -211,7 +211,7 @@ Latest verified test result:
 
 This was run from:
 
-- [`optimizer_lab`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab)
+- [`nanoevolve`](./)
 
 ### Verified Properties
 
@@ -250,8 +250,8 @@ So the project is beyond scaffold-only status, but not yet at real end-to-end Na
 
 1. Replace the toy evaluator with a real NanoChat short-run evaluator
    Files likely affected:
-   - [`adamopt/optim_search/eval_candidate.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/optim_search/eval_candidate.py)
-   - [`adamopt/scripts/search_optimizer.py`](/Users/ankit/Documents/dev/RL/paperbench/optimizer_lab/adamopt/scripts/search_optimizer.py)
+   - [`adamopt/optim_search/eval_candidate.py`](./adamopt/optim_search/eval_candidate.py)
+   - [`adamopt/scripts/search_optimizer.py`](./adamopt/scripts/search_optimizer.py)
 
 2. Make spec-only search the default automated path
    Meaning:
@@ -297,7 +297,7 @@ That means:
 2. The stateful DSL is implemented, but it has not yet been selected by real NanoChat training dynamics.
 3. The code-mutation path exists, but it should remain secondary until the spec evaluator is trusted.
 4. The current virtualenv is still one level above the composite repo root:
-   - `/Users/ankit/Documents/dev/RL/paperbench/.venv`
+   - `.venv` (at or above the repo root)
 
 ## Recommended Next Step
 
