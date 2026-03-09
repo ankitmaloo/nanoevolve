@@ -335,7 +335,7 @@ The DSL encodes exactly the structure needed for evolution to express phase-awar
 
 ---
 
-## What We Are Building Toward
+## What We Are Building Towards
 
 The target outcome is an evolved optimizer policy that achieves a **better quality-vs-compute tradeoff** than NanoChat's baseline Muon: same final validation loss in measurably less wall-clock time, or better final loss at the same compute budget. The policy is interpretable, robust across seeds and hyperparameter neighborhoods, and directly usable by anyone training transformers with the Muon/AdamW split.
 
