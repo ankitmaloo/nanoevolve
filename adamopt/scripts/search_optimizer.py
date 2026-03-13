@@ -25,6 +25,7 @@ from adamopt.optim_search.command_mutator import (
 )
 from adamopt.optim_search.deployment import RemoteTarget, deploy_candidate_workspace, fetch_deployment_trace
 from adamopt.optim_search.eval_candidate import ToyNanoChatBackend, compare_baseline_candidate, write_metrics_json
+from adamopt.optim_search.real_backend import RealNanoChatBackend
 from adamopt.optim_search.spec import MatrixOptimizerSpec
 from adamopt.optim_search.tournament import OptimizerTournament
 from adamopt.optim_search.validation import validate_candidate_workspace
@@ -61,7 +62,7 @@ def _parse_env(values: list[str]) -> dict[str, str]:
 
 
 def _add_eval_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--backend", choices=["toy"], default="toy")
+    parser.add_argument("--backend", choices=["toy", "real"], default="toy")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--steps", type=int, default=24)
     parser.add_argument("--eval-every", type=int, default=6)
@@ -72,6 +73,13 @@ def _add_eval_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--hidden-dim", type=int, default=64)
     parser.add_argument("--layers", type=int, default=2)
     parser.add_argument("--device", type=str, default="cpu")
+    # Real backend (Modal A100) args
+    parser.add_argument("--gpu-steps", type=int, default=20, help="Training steps for real GPU eval")
+    parser.add_argument("--gpu-eval-every", type=int, default=10, help="Eval cadence for GPU runs")
+    parser.add_argument("--gpu-depth", type=int, default=4, help="Model depth for GPU runs")
+    parser.add_argument("--gpu-seq-len", type=int, default=512, help="Sequence length for GPU runs")
+    parser.add_argument("--gpu-batch-size", type=int, default=2, help="Device batch size for GPU runs")
+    parser.add_argument("--gpu-total-batch", type=int, default=1024, help="Total batch size for GPU runs")
 
 
 def _build_eval_config(args: argparse.Namespace) -> EvaluationConfig:
@@ -125,11 +133,25 @@ def cmd_tournament(args: argparse.Namespace) -> int:
         run_name=args.run_name,
         out_dir=args.out_dir,
     )
+
+    if args.backend == "real":
+        backend = RealNanoChatBackend(
+            steps=args.gpu_steps,
+            eval_every=args.gpu_eval_every,
+            depth=args.gpu_depth,
+            max_seq_len=args.gpu_seq_len,
+            device_batch_size=args.gpu_batch_size,
+            total_batch_size=args.gpu_total_batch,
+            mode="modal",
+        )
+    else:
+        backend = ToyNanoChatBackend(eval_config)
+
     tournament = OptimizerTournament(
         root_dir=Path(__file__).resolve().parents[1],
         search_config=search_config,
         evaluation_config=eval_config,
-        backend=ToyNanoChatBackend(eval_config),
+        backend=backend,
     )
     summary = tournament.run()
     print(json.dumps(asdict(summary), indent=2))

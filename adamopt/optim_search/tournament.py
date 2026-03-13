@@ -8,6 +8,7 @@ from pathlib import Path
 from .archive import SearchArchive
 from .config import EvaluationConfig, SearchConfig
 from .eval_candidate import ToyNanoChatBackend
+from .real_backend import RealNanoChatBackend
 from .mutations import mutate_spec
 from .score import analyze_win_hierarchy, composite_score, pareto_frontier
 from .spec import MatrixOptimizerSpec
@@ -28,7 +29,7 @@ class OptimizerTournament:
         root_dir: Path,
         search_config: SearchConfig,
         evaluation_config: EvaluationConfig,
-        backend: ToyNanoChatBackend | None = None,
+        backend: ToyNanoChatBackend | RealNanoChatBackend | None = None,
     ) -> None:
         self.root_dir = root_dir
         self.search_config = search_config

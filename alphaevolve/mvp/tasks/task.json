@@ -1,0 +1,11 @@
+{
+    "name": "optimize_astar_heuristic",
+    "description": "Evolve the A* priority and tie-break scoring functions for better pathfinding on weighted grids. The priority_score function controls which nodes A* expands first. Higher scores mean the node is preferred. The tie_break_priority function breaks ties between nodes with equal priority scores.",
+    "seed_file": "astar_routing_target.py",
+    "mutable_files": ["astar_routing_target.py"],
+    "context_files": [],
+    "eval_mode": "builtin_astar",
+    "metric_keys": ["aggregate_score", "solved_ratio", "path_quality", "expansion_efficiency", "route_smoothness"],
+    "maximize": true,
+    "primary_metric": "aggregate_score"
+}

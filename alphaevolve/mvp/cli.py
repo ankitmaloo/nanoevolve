@@ -26,7 +26,9 @@ def _base_dir() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _run_with_optional_tui(base: Path, cfg: RunConfig, enable_tui: bool) -> dict[str, object]:
+def _run_with_optional_tui(
+    base: Path, cfg: RunConfig, enable_tui: bool, task_dir: Path | None = None
+) -> dict[str, object]:
     tui = None
     event_callback = None
     if enable_tui:
@@ -44,7 +46,9 @@ def _run_with_optional_tui(base: Path, cfg: RunConfig, enable_tui: bool) -> dict
         tui.start()
 
     try:
-        controller = EvolutionController(base_dir=base, config=cfg, event_callback=event_callback)
+        controller = EvolutionController(
+            base_dir=base, config=cfg, event_callback=event_callback, task_dir=task_dir
+        )
         return controller.run()
     finally:
         if tui is not None:
@@ -129,8 +133,9 @@ def run_loop(args: argparse.Namespace) -> int:
         seed_program_path=args.seed_program,
         mock_diff_path=args.mock_diffs,
     )
+    task_dir = Path(args.task_dir).resolve() if args.task_dir else None
     try:
-        summary = _run_with_optional_tui(base, cfg, args.tui)
+        summary = _run_with_optional_tui(base, cfg, args.tui, task_dir=task_dir)
     except RuntimeError as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
@@ -326,6 +331,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--run-name", default=None)
     run.add_argument("--seed-program", default="mvp/tasks/astar_routing_target.py")
     run.add_argument("--mock-diffs", default="mvp/mock_diffs/astar_routing_diffs.json")
+    run.add_argument("--task-dir", default=None, help="Path to a folder with task.json (generic target evolution)")
     run.add_argument("--tui", action="store_true", help="Show a live terminal dashboard")
 
     dry = sub.add_parser("dry-run", help="Run full loop in mock mode to validate setup before live API runs")

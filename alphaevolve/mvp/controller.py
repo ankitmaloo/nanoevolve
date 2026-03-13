@@ -12,6 +12,8 @@ from mvp.config import RunConfig
 from mvp.diff_engine import DiffFormatError, SearchBlockNotFoundError, apply_search_replace_blocks
 from mvp.evaluator import Evaluator
 from mvp.evolve_blocks import assert_has_evolve_blocks
+from mvp.generic_evaluator import GenericEvaluator
+from mvp.task_config import TaskConfig
 from mvp.mutator_gemini import GeminiMutator
 from mvp.mutator_mock import MockMutator
 from mvp.population_db import PopulationDB
@@ -25,11 +27,18 @@ class EvolutionController:
         base_dir: Path,
         config: RunConfig,
         event_callback: Callable[[dict[str, object]], None] | None = None,
+        task_dir: Path | None = None,
     ) -> None:
         self.base_dir = base_dir
         self.config = config
         self.event_callback = event_callback
         self.rng = random.Random(config.seed)
+
+        # Load task config if a task directory is provided
+        self.task_config: TaskConfig | None = None
+        self.task_dir = task_dir
+        if task_dir is not None:
+            self.task_config = TaskConfig.load(task_dir)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         run_name = config.run_name or f"{config.mode}_{timestamp}"
@@ -44,18 +53,29 @@ class EvolutionController:
 
         self.db = PopulationDB(seed=config.seed)
         self.prompt_evolver = PromptEvolver(seed=config.seed)
-        self.evaluator = Evaluator()
+
+        # Use generic evaluator when task_dir is provided, builtin otherwise
+        if self.task_config is not None:
+            self.evaluator = GenericEvaluator(self.task_config, task_dir)
+        else:
+            self.evaluator = Evaluator()
+
         self.parallel_candidates = max(1, int(config.parallel_candidates))
         self.llm_concurrency = max(1, int(config.llm_concurrency))
-        self.metric_keys = [
-            "aggregate_score",
-            "placed_jobs_ratio",
-            "balance_score",
-            "fragmentation_score",
-            "solved_ratio",
-            "path_quality",
-            "expansion_efficiency",
-        ]
+
+        # Metric keys: from task config if available, otherwise hardcoded defaults
+        if self.task_config is not None:
+            self.metric_keys = self.task_config.metric_keys
+        else:
+            self.metric_keys = [
+                "aggregate_score",
+                "placed_jobs_ratio",
+                "balance_score",
+                "fragmentation_score",
+                "solved_ratio",
+                "path_quality",
+                "expansion_efficiency",
+            ]
         self.events_path = self.run_dir / "events.jsonl"
 
         if config.mode == "mock":
@@ -86,9 +106,22 @@ class EvolutionController:
             llm_concurrency=self.llm_concurrency,
             run_dir=str(self.run_dir),
         )
-        seed_source = self.config.resolve_seed_program_path(self.base_dir).read_text()
+        # Load seed program: from task config if available, otherwise from RunConfig
+        if self.task_config is not None and self.task_dir is not None:
+            seed_path = self.task_config.resolve_seed_path(self.task_dir)
+        else:
+            seed_path = self.config.resolve_seed_program_path(self.base_dir)
+        seed_source = seed_path.read_text()
         assert_has_evolve_blocks(seed_source)
-        (self.run_dir / "seed_program.py").write_text(seed_source)
+        seed_filename = seed_path.name
+        (self.run_dir / f"seed_program{seed_path.suffix}").write_text(seed_source)
+
+        # Load context files for the LLM prompt (read-only files the LLM should see)
+        self._context_texts: dict[str, str] = {}
+        if self.task_config is not None and self.task_dir is not None:
+            for ctx_path in self.task_config.resolve_context_paths(self.task_dir):
+                if ctx_path.exists():
+                    self._context_texts[ctx_path.name] = ctx_path.read_text()
         (self.run_dir / "config.json").write_text(json.dumps(asdict(self.config), indent=2))
 
         seed_eval = self.evaluator.evaluate(seed_source)
@@ -488,8 +521,30 @@ class EvolutionController:
 
         failure_section = "\n".join([f"- {r}" for r in feedback.weak_failure_reasons]) or "- none"
         dropped_section = "\n".join([f"- {r}" for r in feedback.dropped_notes]) or "- none"
+
+        # Build task-specific guidance
+        if self.task_config is not None:
+            task_guidance = f"""
+# Task: {self.task_config.name}
+{self.task_config.description}
+
+Target metrics: {', '.join(self.task_config.metric_keys)}
+Primary metric: {self.task_config.primary_metric} ({'higher' if self.task_config.maximize else 'lower'} is better)
+"""
+        else:
+            task_guidance = ""
+
+        # Build context files section
+        context_section = ""
+        if self._context_texts:
+            parts = []
+            for name, text in self._context_texts.items():
+                parts.append(f"# Context file: {name} (read-only, do not modify)\n{text}")
+            context_section = "\n\n".join(parts) + "\n"
+
+        # Builtin A* guidance (backward compat for existing runs)
         astar_guidance = ""
-        if "def priority_score(" in parent.source and "def tie_break_priority(" in parent.source:
+        if self.task_config is None and "def priority_score(" in parent.source and "def tie_break_priority(" in parent.source:
             astar_guidance = """
 - Do not return a no-op mutation.
 - Change at least one numeric coefficient in EVOLVE blocks.
@@ -499,10 +554,10 @@ class EvolutionController:
   - or refine tie-break coefficients.
 """
 
-        return f"""Act as an expert software developer improving an evolvable heuristic program.
+        return f"""Act as an expert software developer improving an evolvable program.
 
 Goal: propose a code mutation that improves target metrics while keeping program validity.
-
+{task_guidance}
 Prompt strategy (co-evolved):
 {prompt_strategy_text}
 
@@ -520,8 +575,8 @@ Inspiration candidates:
 
 Current parent candidate: {parent.id}
 Parent metrics: {json.dumps(parent.metrics)}
-
-# Current program
+{context_section}
+# Current program (mutable)
 {parent.source}
 
 # SEARCH/REPLACE block rules

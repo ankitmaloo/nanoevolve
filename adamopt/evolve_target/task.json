@@ -1,0 +1,14 @@
+{
+    "name": "evolve_nanochat_optimizer",
+    "description": "Evolve the Muon optimizer configuration for NanoChat training. The optimizer spec controls momentum, orthogonalization, trust ratios, gradient clipping, weight decay, and an adaptive stateful control system. Better specs achieve lower validation BPB (bits-per-byte) in fewer training steps. The LLM should experiment with enabling stateful_control, adjusting gate coefficients, trying different clip/trust_ratio modes, and tuning numeric parameters.",
+    "seed_file": "optimizer_spec.py",
+    "mutable_files": ["optimizer_spec.py"],
+    "context_files": ["DSL_REFERENCE.md"],
+    "eval_command": "bash eval.sh {candidate_file}",
+    "eval_mode": "command",
+    "metric_keys": ["aggregate_score", "delta_bpb", "final_val_bpb", "speed_ratio", "nan_failures"],
+    "maximize": true,
+    "primary_metric": "aggregate_score",
+    "eval_timeout": 300,
+    "eval_env": {"GPU_EVAL": "0"}
+}

@@ -1,5 +1,83 @@
 # NanoEvolve Checkpoint
 
+## Current State (2026-03-13)
+
+Real NanoChat GPU evaluation is now working end-to-end on Modal A100.
+
+### What Was Done
+
+1. **Fixed `token_bytes` device mismatch** in [`adamopt/optim_search/real_eval.py`](./adamopt/optim_search/real_eval.py)
+   - `get_token_bytes()` → `get_token_bytes(device=device)` (line 173)
+   - Without this, `evaluate_bpb` crashed because `token_bytes` (CPU) was indexed by `y` (CUDA)
+
+2. **Built single-spec validation pipeline**: [`scripts/modal_validate_spec.py`](./scripts/modal_validate_spec.py)
+   - Phase 1: Local syntax & constraint validation (no GPU needed, catches bad specs instantly)
+   - Phase 2: 20-step real NanoChat training on A100 (candidate + baseline, same container)
+   - Phase 3: Telemetry report (loss curves, gate ranges, step times, NaN/Inf checks)
+   - Phase 4: Verdict — VALID or REJECTED with reasons
+   - Usage: `uv run scripts/modal_validate_spec.py --spec candidate.json`
+   - Or pipe from LLM: `echo '...' | uv run scripts/modal_validate_spec.py --spec -`
+   - Or built-in: `uv run scripts/modal_validate_spec.py --builtin stateful_annealing`
+
+3. **Built batch evolution script**: [`scripts/modal_evolve.py`](./scripts/modal_evolve.py)
+   - Mutates a parent spec N times, runs all on GPU in parallel, scores and ranks
+   - Not the primary workflow — the validation script is the main gate
+
+### Verified on GPU
+
+- `modal_test_real_eval.py`: 3/3 tests passed (baseline, telemetry, stateful)
+- `modal_validate_spec.py`: stateful_annealing variant validated — ✅ VALID, 0.034 BPB worse than baseline, 1.9x slower, no NaN/Inf, loss decreasing
+
+### The Intended Workflow
+
+The workflow for testing a single mutation idea:
+
+1. LLM (or human) suggests a mutation → produces a `MatrixOptimizerSpec` JSON
+2. `modal_validate_spec.py` validates it:
+   - Catches invalid specs locally (no GPU cost)
+   - Runs 20 steps on A100 alongside baseline
+   - Reports telemetry and verdict
+3. If VALID → enters the real evaluation queue (tournament)
+4. If REJECTED → feedback goes back to the LLM for a better mutation
+
+### What Is Still Missing
+
+- Wiring `modal_validate_spec.py` into the tournament loop (`search_optimizer.py tournament --backend real`)
+- An LLM-in-the-loop mutation generator that produces spec JSONs
+- Multi-seed promotion on real GPU (currently toy-backend only)
+
+### AlphaEvolve Generic Task System (also done this session)
+
+4. **Made alphaevolve a generic evolution engine** — any folder with a `task.json` can be evolved
+   - Created [`alphaevolve/mvp/task_config.py`](./alphaevolve/mvp/task_config.py) — `TaskConfig` reads `task.json`
+   - Created [`alphaevolve/mvp/generic_evaluator.py`](./alphaevolve/mvp/generic_evaluator.py) — `GenericEvaluator` runs external eval commands
+   - Refactored [`alphaevolve/mvp/controller.py`](./alphaevolve/mvp/controller.py) — accepts `task_dir`, loads config, context files, metric keys from `task.json`
+   - Added `--task-dir` to CLI: `python mvp/cli.py run --task-dir /path/to/kernel/folder --mode gemini`
+   - Existing A* and BinPack tasks work unchanged (backward compatible)
+   - All tests pass: 12/12 (8 existing + 4 new generic evaluator tests)
+
+**How it works now:**
+
+Any folder can be evolved by creating a `task.json`:
+```json
+{
+    "name": "optimize_softmax_kernel",
+    "description": "Evolve the softmax CUDA kernel for better throughput.",
+    "seed_file": "softmax.cu",
+    "mutable_files": ["softmax.cu"],
+    "context_files": ["softmax.h", "bench.py"],
+    "eval_command": "bash eval.sh {candidate_file}",
+    "eval_mode": "command",
+    "metric_keys": ["throughput_gbps", "correctness"],
+    "primary_metric": "throughput_gbps"
+}
+```
+
+Then run: `python mvp/cli.py run --task-dir /path/to/kernel --mode gemini`
+
+The `eval_command` must print JSON to stdout: `{"valid": true, "aggregate_score": 124.5, "metrics": {...}}`
+
+
 This file captures the current project state for the composite repo rooted at:
 
 - [`nanoevolve`](./)
