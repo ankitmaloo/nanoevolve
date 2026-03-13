@@ -230,6 +230,10 @@ def build_adamw_mutation_prompt(
         if block:
             optional_sections.append(f"Optional reference from `{relpath}`:\n{block}")
 
+    required_block = "\n\n".join(required_sections)
+    optional_block = "\n\n" + "\n\n".join(optional_sections) if optional_sections else ""
+    constraints_line = " ".join(patch_target.constraints)
+
     prompt = f"""You are mutating a constrained NanoChat optimizer patch scope.
 
 Target repository root:
@@ -239,7 +243,7 @@ Constraints:
 - Only modify `{patch_target.target_relpath}`.
 - Scope: `{patch_target.scope}`.
 - {patch_target.description}
-- {' '.join(patch_target.constraints)}
+- {constraints_line}
 - Return only SEARCH/REPLACE blocks.
 - No markdown fences.
 - Keep the code runnable.
@@ -248,8 +252,8 @@ Constraints:
 Mutation request:
 {instruction}
 
-{"\n\n".join(required_sections)}
-{"\n\n" + "\n\n".join(optional_sections) if optional_sections else ""}
+{required_block}
+{optional_block}
 """
     return prompt
 
