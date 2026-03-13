@@ -16,12 +16,34 @@ if ROOT_DIR not in sys.path:
 
 from adamopt.optim_search.autonomous import AutonomousSearchController
 from adamopt.optim_search.config import AutonomousSearchConfig, ComparisonConfig, EvaluationConfig, SearchConfig
-from adamopt.optim_search.command_mutator import patch_nanochat_adamw
+from adamopt.optim_search.command_mutator import (
+    MutatorConfig,
+    ProviderConfig,
+    ensemble_patch_nanochat,
+    patch_nanochat_adamw,
+    SUPPORTED_PROVIDERS,
+)
 from adamopt.optim_search.deployment import RemoteTarget, deploy_candidate_workspace, fetch_deployment_trace
 from adamopt.optim_search.eval_candidate import ToyNanoChatBackend, compare_baseline_candidate, write_metrics_json
 from adamopt.optim_search.spec import MatrixOptimizerSpec
 from adamopt.optim_search.tournament import OptimizerTournament
 from adamopt.optim_search.validation import validate_candidate_workspace
+
+
+def _load_mutator_config(path: str | None) -> MutatorConfig:
+    """Load a MutatorConfig from a JSON file, or return the default."""
+    if path is None:
+        return MutatorConfig()
+    raw = json.loads(Path(path).read_text())
+    providers = [
+        ProviderConfig(
+            name=p["name"],
+            command_template=p["command_template"],
+            enabled=p.get("enabled", True),
+        )
+        for p in raw.get("providers", [])
+    ]
+    return MutatorConfig(providers=providers) if providers else MutatorConfig()
 
 
 def _parse_seeds(raw: str) -> tuple[int, ...]:
@@ -115,6 +137,7 @@ def cmd_tournament(args: argparse.Namespace) -> int:
 
 
 def cmd_patch_code(args: argparse.Namespace) -> int:
+    cfg = _load_mutator_config(getattr(args, "providers_config", None))
     artifacts = patch_nanochat_adamw(
         nanochat_root=Path(args.nanochat_root).resolve(),
         candidate_dir=(Path(args.run_dir).resolve() / args.candidate_id),
@@ -123,6 +146,7 @@ def cmd_patch_code(args: argparse.Namespace) -> int:
         instruction=args.instruction,
         command_template=args.command_template,
         scope=args.scope,
+        config=cfg,
     )
     print(
         json.dumps(
@@ -209,6 +233,52 @@ def cmd_validate_code(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ensemble_patch(args: argparse.Namespace) -> int:
+    cfg = _load_mutator_config(getattr(args, "providers_config", None))
+    providers = [p.strip() for p in args.providers.split(",")] if args.providers else None
+    command_templates: dict[str, str] = {}
+    for entry in args.command_template_override:
+        provider, sep, template = entry.partition("=")
+        if not sep:
+            raise ValueError(f"Invalid --command-template-override: {entry} (expected provider=template)")
+        command_templates[provider] = template
+
+    result = ensemble_patch_nanochat(
+        nanochat_root=Path(args.nanochat_root).resolve(),
+        base_candidate_dir=Path(args.run_dir).resolve(),
+        candidate_id_prefix=args.candidate_id_prefix,
+        providers=providers,
+        instruction=args.instruction,
+        command_templates=command_templates or None,
+        scope=args.scope,
+        config=cfg,
+    )
+    output: dict[str, object] = {
+        "candidate_id_prefix": result.candidate_id_prefix,
+        "providers_succeeded": result.successful_providers,
+        "providers_failed": result.failed_providers,
+        "errors": result.provider_errors,
+        "artifacts": {
+            provider: {
+                "candidate_id": a.candidate_id,
+                "workspace_dir": str(a.workspace_dir),
+                "patch_path": str(a.patch_path),
+            }
+            for provider, a in result.provider_results.items()
+            if a is not None
+        },
+    }
+    if result.diversity_review is not None:
+        dr = result.diversity_review
+        output["diversity_review"] = {
+            "covers_solution_space": dr.covers_solution_space,
+            "summary": dr.summary,
+            "suggested_reprompts": dr.suggested_reprompts,
+        }
+    print(json.dumps(output, indent=2))
+    return 0
+
+
 def cmd_autonomous_run(args: argparse.Namespace) -> int:
     config = AutonomousSearchConfig(
         candidate_count=args.candidate_count,
@@ -279,14 +349,26 @@ def build_parser() -> argparse.ArgumentParser:
     tournament_parser.set_defaults(func=cmd_tournament)
 
     patch_parser = subparsers.add_parser("patch-code", help="patch NanoChat AdamW code with a CLI mutator")
-    patch_parser.add_argument("--provider", choices=["codex", "claude"], required=True)
+    patch_parser.add_argument("--provider", choices=list(SUPPORTED_PROVIDERS), required=True)
     patch_parser.add_argument("--instruction", type=str, required=True)
     patch_parser.add_argument("--candidate-id", type=str, required=True)
     patch_parser.add_argument("--nanochat-root", type=str, default="nanochat")
     patch_parser.add_argument("--run-dir", type=str, default="adamopt/runs/code_mutations")
     patch_parser.add_argument("--scope", choices=["adamw_math", "muon_math", "optimizer_routing"], default="adamw_math")
     patch_parser.add_argument("--command-template", type=str, default=None)
+    patch_parser.add_argument("--providers-config", type=str, default=None, help="path to providers.json config file")
     patch_parser.set_defaults(func=cmd_patch_code)
+
+    ensemble_parser = subparsers.add_parser("ensemble-patch", help="run the same mutation through multiple providers (codex, claude, copilot)")
+    ensemble_parser.add_argument("--providers", type=str, default=None, help="comma-separated list of providers (default: all enabled in config)")
+    ensemble_parser.add_argument("--instruction", type=str, required=True)
+    ensemble_parser.add_argument("--candidate-id-prefix", type=str, required=True)
+    ensemble_parser.add_argument("--nanochat-root", type=str, default="nanochat")
+    ensemble_parser.add_argument("--run-dir", type=str, default="adamopt/runs/ensemble_mutations")
+    ensemble_parser.add_argument("--scope", choices=["adamw_math", "muon_math", "optimizer_routing"], default="adamw_math")
+    ensemble_parser.add_argument("--command-template-override", action="append", default=[], help="provider=template override, e.g. codex='codex -q ...'")
+    ensemble_parser.add_argument("--providers-config", type=str, default=None, help="path to providers.json config file")
+    ensemble_parser.set_defaults(func=cmd_ensemble_patch)
 
     deploy_parser = subparsers.add_parser("deploy-code", help="deploy a patched candidate workspace to a remote target")
     deploy_parser.add_argument("--candidate-dir", required=True, type=str)
@@ -319,7 +401,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     autonomous_parser = subparsers.add_parser("autonomous-run", help="run the fully autonomous patch/deploy/poll loop")
     autonomous_parser.add_argument("--candidate-count", type=int, default=4)
-    autonomous_parser.add_argument("--provider", choices=["codex", "claude"], required=True)
+    autonomous_parser.add_argument("--provider", choices=list(SUPPORTED_PROVIDERS), required=True)
     autonomous_parser.add_argument("--instruction-template", type=str, required=True)
     autonomous_parser.add_argument("--scope", choices=["adamw_math", "muon_math", "optimizer_routing"], default="adamw_math")
     autonomous_parser.add_argument("--command-template", type=str, default=None)

@@ -23,6 +23,11 @@ class SearchArchive:
     def get(self, candidate_id: str) -> CandidateRecord:
         return self._by_id[candidate_id]
 
+    def get_by_id(self, candidate_id: str | None) -> CandidateRecord | None:
+        if candidate_id is None:
+            return None
+        return self._by_id.get(candidate_id)
+
     def survivors(self) -> list[CandidateRecord]:
         return [record for record in self._records if record.status in {"baseline", "survivor", "winner"}]
 

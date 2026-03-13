@@ -11,7 +11,14 @@ from .eval_candidate import ToyNanoChatBackend
 from .mutations import mutate_spec
 from .score import analyze_win_hierarchy, composite_score, pareto_frontier
 from .spec import MatrixOptimizerSpec
-from .types import CandidateRecord, PromotionResult, TournamentSummary
+from .types import (
+    CandidateRecord,
+    GenealogyNode,
+    MutationOperatorStats,
+    PromotionResult,
+    TournamentAnalytics,
+    TournamentSummary,
+)
 
 
 class OptimizerTournament:
@@ -139,6 +146,101 @@ class OptimizerTournament:
             notes=notes,
         )
 
+    def _build_analytics(self, baseline: CandidateRecord) -> TournamentAnalytics:
+        records = self.archive.records
+
+        # --- Mutation operator stats ---
+        op_stats: dict[str, MutationOperatorStats] = {}
+        for record in records:
+            mutation = record.lineage.get("mutation", "seed")
+            if mutation == "seed":
+                continue
+            if mutation not in op_stats:
+                op_stats[mutation] = MutationOperatorStats(operator=mutation)
+            stats = op_stats[mutation]
+            stats.times_applied += 1
+            if record.status in ("survivor", "winner"):
+                stats.times_survived += 1
+            if record.promoted:
+                stats.times_promoted += 1
+            if record.status == "winner":
+                stats.times_won += 1
+
+        # Compute score deltas relative to parent
+        for record in records:
+            mutation = record.lineage.get("mutation", "seed")
+            if mutation == "seed" or mutation not in op_stats:
+                continue
+            parent = self.archive.get_by_id(record.parent_id) if record.parent_id else None
+            parent_score = parent.score if parent else 0.0
+            delta = record.score - parent_score
+            stats = op_stats[mutation]
+            # Running mean
+            n = stats.times_applied
+            stats.mean_score_delta += (delta - stats.mean_score_delta) / max(n, 1)
+            if delta > stats.best_score_delta:
+                stats.best_score_delta = delta
+                stats.best_candidate_id = record.id
+
+        # --- Genealogy tree ---
+        genealogy: list[GenealogyNode] = []
+        children_map: dict[str, list[str]] = {}
+        for record in records:
+            if record.parent_id:
+                children_map.setdefault(record.parent_id, []).append(record.id)
+        for record in records:
+            genealogy.append(GenealogyNode(
+                candidate_id=record.id,
+                parent_id=record.parent_id,
+                generation=record.generation,
+                mutation=record.lineage.get("mutation", "seed"),
+                status=record.status,
+                score=record.score,
+                children=children_map.get(record.id, []),
+            ))
+
+        # --- Generation diversity ---
+        gen_diversity: list[dict[str, object]] = []
+        gen_records: dict[int, list[CandidateRecord]] = {}
+        for record in records:
+            gen_records.setdefault(record.generation, []).append(record)
+        for gen in sorted(gen_records):
+            gen_list = gen_records[gen]
+            scores = [r.score for r in gen_list]
+            mutations_used = set(r.lineage.get("mutation", "seed") for r in gen_list)
+            parents_used = set(r.parent_id for r in gen_list if r.parent_id)
+            valid_count = sum(1 for r in gen_list if r.primary_outcome.valid)
+            gen_diversity.append({
+                "generation": gen,
+                "candidates": len(gen_list),
+                "valid": valid_count,
+                "unique_mutations": len(mutations_used),
+                "mutations": sorted(mutations_used),
+                "unique_parents": len(parents_used),
+                "min_score": min(scores) if scores else 0.0,
+                "max_score": max(scores) if scores else 0.0,
+                "mean_score": sum(scores) / len(scores) if scores else 0.0,
+            })
+
+        # --- Winning lineage paths ---
+        winning_paths: list[list[str]] = []
+        id_to_record = {r.id: r for r in records}
+        for record in records:
+            if record.status == "winner":
+                path = []
+                current: CandidateRecord | None = record
+                while current is not None:
+                    path.append(current.id)
+                    current = id_to_record.get(current.parent_id) if current.parent_id else None
+                winning_paths.append(list(reversed(path)))
+
+        return TournamentAnalytics(
+            mutation_stats=sorted(op_stats.values(), key=lambda s: s.times_won, reverse=True),
+            genealogy=genealogy,
+            generation_diversity=gen_diversity,
+            winning_lineage_paths=winning_paths,
+        )
+
     def run(self) -> TournamentSummary:
         baseline = self._baseline_record()
         next_candidate_number = 1
@@ -206,6 +308,11 @@ class OptimizerTournament:
         best = self.archive.best()
         winners = [record.id for record in self.archive.records if record.status == "winner"]
         pareto_ids = [record.id for record in self.archive.records if record.pareto]
+        analytics = self._build_analytics(baseline)
+
+        # Persist analytics as separate file for easy access
+        (self.run_dir / "analytics.json").write_text(json.dumps(asdict(analytics), indent=2))
+
         summary = TournamentSummary(
             run_dir=str(self.run_dir),
             baseline_candidate_id=baseline.id,
@@ -213,6 +320,7 @@ class OptimizerTournament:
             total_candidates=len(self.archive.records),
             winners=winners,
             pareto_frontier=pareto_ids,
+            analytics=analytics,
         )
         (self.run_dir / "summary.json").write_text(json.dumps(asdict(summary), indent=2))
         return summary

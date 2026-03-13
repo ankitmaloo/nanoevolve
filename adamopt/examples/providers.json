@@ -1,0 +1,24 @@
+{
+  "providers": [
+    {
+      "name": "claude",
+      "command_template": "claude -p {prompt}",
+      "enabled": true
+    },
+    {
+      "name": "codex",
+      "command_template": "codex -q \"$(cat {prompt_file})\"",
+      "enabled": true
+    },
+    {
+      "name": "copilot",
+      "command_template": "cat {prompt_file} | gh copilot suggest -t code",
+      "enabled": true
+    },
+    {
+      "name": "local-llama",
+      "command_template": "llama-cli --file {prompt_file} --no-display-prompt",
+      "enabled": false
+    }
+  ]
+}

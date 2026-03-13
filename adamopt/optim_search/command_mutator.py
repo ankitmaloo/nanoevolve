@@ -7,16 +7,154 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
 
 from .diff_engine import apply_search_replace_blocks
 from .optimizer_targets import get_patch_target
 
 
-DEFAULT_COMMAND_TEMPLATES = {
-    "codex": "codex exec {prompt}",
-    "claude": "claude -p {prompt}",
-}
+# ---------------------------------------------------------------------------
+# Provider registry — fully configurable at runtime
+# ---------------------------------------------------------------------------
 
+@dataclass
+class ProviderConfig:
+    """One LLM provider that can generate code mutations via CLI."""
+    name: str
+    command_template: str
+    enabled: bool = True
+
+
+# Shipped defaults.  Callers can add/remove/override via MutatorConfig.
+_BUILTIN_PROVIDERS: list[ProviderConfig] = [
+    ProviderConfig(name="codex",   command_template='codex -q "$(cat {prompt_file})"'),
+    ProviderConfig(name="claude",  command_template="claude -p {prompt}"),
+    ProviderConfig(name="copilot", command_template="cat {prompt_file} | gh copilot suggest -t code"),
+]
+
+
+@dataclass
+class MutatorConfig:
+    """Top-level configuration for the code-mutation subsystem.
+
+    providers:
+        Ordered list of provider configs.  Only providers with enabled=True
+        are used by ensemble operations.  You can add custom providers
+        (e.g. a local model behind llama.cpp) by appending to this list.
+
+    diversity_review:
+        Optional callback invoked after an ensemble generates patches from
+        multiple providers.  Receives the EnsembleMutationResult and must
+        return a DiversityReview.  If the review marks the ensemble as
+        lacking diversity, the ensemble result carries that signal so the
+        caller can re-prompt, discard duplicates, or take other action.
+
+        Set to None to skip the review (default).
+    """
+    providers: list[ProviderConfig] = field(default_factory=lambda: list(_BUILTIN_PROVIDERS))
+    diversity_review: DiversityReviewFn | None = None
+
+    # -- helpers --
+
+    @property
+    def enabled_providers(self) -> list[ProviderConfig]:
+        return [p for p in self.providers if p.enabled]
+
+    @property
+    def provider_names(self) -> list[str]:
+        return [p.name for p in self.providers]
+
+    @property
+    def enabled_provider_names(self) -> list[str]:
+        return [p.name for p in self.enabled_providers]
+
+    def get_template(self, provider_name: str) -> str:
+        for p in self.providers:
+            if p.name == provider_name:
+                return p.command_template
+        raise ValueError(
+            f"Unknown provider: {provider_name!r}. "
+            f"Registered: {self.provider_names}"
+        )
+
+    def add_provider(self, name: str, command_template: str, *, enabled: bool = True) -> None:
+        # Replace if exists, else append.
+        for i, p in enumerate(self.providers):
+            if p.name == name:
+                self.providers[i] = ProviderConfig(name=name, command_template=command_template, enabled=enabled)
+                return
+        self.providers.append(ProviderConfig(name=name, command_template=command_template, enabled=enabled))
+
+
+# Convenience: the default singleton used when no config is passed.
+def default_mutator_config() -> MutatorConfig:
+    return MutatorConfig()
+
+
+# Legacy compat
+def default_command_template(provider: str) -> str:
+    return default_mutator_config().get_template(provider)
+
+
+SUPPORTED_PROVIDERS = tuple(p.name for p in _BUILTIN_PROVIDERS)
+
+
+# ---------------------------------------------------------------------------
+# Diversity review — the hook for checking solution-space coverage
+# ---------------------------------------------------------------------------
+
+@dataclass
+class PatchSummary:
+    """Lightweight summary of one provider's patch, for the diversity reviewer."""
+    provider: str
+    candidate_id: str
+    diff_text: str
+    response_text: str
+    patch_path: Path
+    response_path: Path
+
+
+@dataclass
+class DiversityVerdict:
+    """Per-pair or per-patch verdict from the diversity reviewer."""
+    provider: str
+    is_duplicate_of: str | None = None
+    novelty_notes: str = ""
+
+
+@dataclass
+class DiversityReview:
+    """Result of reviewing an ensemble for solution-space coverage.
+
+    covers_solution_space:
+        True if the reviewer considers the patches sufficiently diverse.
+        False if multiple providers converged on the same idea.
+
+    verdicts:
+        Per-provider analysis.  If a provider's patch is flagged as a
+        duplicate, is_duplicate_of names the provider it duplicates.
+
+    summary:
+        Free-text explanation of the review.  This is the place to note
+        which axes of the solution space are covered and which are missing.
+
+    suggested_reprompts:
+        If coverage is poor, the reviewer can suggest alternative mutation
+        instructions that would push toward unexplored parts of the space.
+    """
+    covers_solution_space: bool
+    verdicts: list[DiversityVerdict] = field(default_factory=list)
+    summary: str = ""
+    suggested_reprompts: list[str] = field(default_factory=list)
+
+
+# The signature for the user-supplied diversity review function.
+DiversityReviewFn = Callable[["EnsembleMutationResult"], DiversityReview]
+
+
+# ---------------------------------------------------------------------------
+# Artifacts
+# ---------------------------------------------------------------------------
 
 @dataclass
 class CommandMutationArtifacts:
@@ -32,11 +170,9 @@ class CommandMutationArtifacts:
     changed_files: list[str] = field(default_factory=list)
 
 
-def default_command_template(provider: str) -> str:
-    if provider not in DEFAULT_COMMAND_TEMPLATES:
-        raise ValueError(f"Unsupported provider: {provider}")
-    return DEFAULT_COMMAND_TEMPLATES[provider]
-
+# ---------------------------------------------------------------------------
+# Prompt building
+# ---------------------------------------------------------------------------
 
 def _extract_block(text: str, anchor: str) -> str:
     lines = text.splitlines()
@@ -118,6 +254,10 @@ Mutation request:
     return prompt
 
 
+# ---------------------------------------------------------------------------
+# Command execution helpers
+# ---------------------------------------------------------------------------
+
 def _render_command(template: str, *, prompt: str, prompt_file: Path, workspace_dir: Path, candidate_id: str) -> list[str]:
     rendered = template.format(
         prompt=prompt,
@@ -138,6 +278,10 @@ def _copy_nanochat_workspace(nanochat_root: Path, workspace_dir: Path) -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Single-provider mutation
+# ---------------------------------------------------------------------------
+
 def patch_nanochat_adamw(
     *,
     nanochat_root: Path,
@@ -147,6 +291,7 @@ def patch_nanochat_adamw(
     instruction: str,
     command_template: str | None = None,
     scope: str = "adamw_math",
+    config: MutatorConfig | None = None,
 ) -> CommandMutationArtifacts:
     candidate_dir.mkdir(parents=True, exist_ok=True)
     workspace_dir = candidate_dir / "workspace"
@@ -160,7 +305,8 @@ def patch_nanochat_adamw(
     metadata_path = candidate_dir / "metadata.json"
     prompt_path.write_text(prompt)
 
-    template = command_template or default_command_template(provider)
+    cfg = config or default_mutator_config()
+    template = command_template or cfg.get_template(provider)
     command = _render_command(template, prompt=prompt, prompt_file=prompt_path, workspace_dir=workspace_dir, candidate_id=candidate_id)
     result = subprocess.run(command, capture_output=True, text=True, check=False)
     raw_response = (result.stdout or "").strip()
@@ -215,3 +361,154 @@ def patch_nanochat_adamw(
         target_file=target_file,
         changed_files=[patch_target.target_relpath],
     )
+
+
+# ---------------------------------------------------------------------------
+# Ensemble mutation — multiple providers, same prompt
+# ---------------------------------------------------------------------------
+
+@dataclass
+class EnsembleMutationResult:
+    """Result from running the same mutation prompt through multiple providers."""
+    candidate_id_prefix: str
+    instruction: str
+    scope: str
+    provider_results: dict[str, CommandMutationArtifacts | None]
+    provider_errors: dict[str, str]
+    diversity_review: DiversityReview | None = None
+
+    @property
+    def successful_providers(self) -> list[str]:
+        return [p for p, a in self.provider_results.items() if a is not None]
+
+    @property
+    def failed_providers(self) -> list[str]:
+        return list(self.provider_errors)
+
+    @property
+    def patch_summaries(self) -> list[PatchSummary]:
+        """Build PatchSummary list for the diversity reviewer."""
+        summaries = []
+        for provider, artifacts in self.provider_results.items():
+            if artifacts is None:
+                continue
+            summaries.append(PatchSummary(
+                provider=provider,
+                candidate_id=artifacts.candidate_id,
+                diff_text=artifacts.patch_path.read_text() if artifacts.patch_path.exists() else "",
+                response_text=artifacts.response_path.read_text() if artifacts.response_path.exists() else "",
+                patch_path=artifacts.patch_path,
+                response_path=artifacts.response_path,
+            ))
+        return summaries
+
+
+def ensemble_patch_nanochat(
+    *,
+    nanochat_root: Path,
+    base_candidate_dir: Path,
+    candidate_id_prefix: str,
+    providers: list[str] | None = None,
+    instruction: str,
+    command_templates: dict[str, str] | None = None,
+    scope: str = "adamw_math",
+    config: MutatorConfig | None = None,
+) -> EnsembleMutationResult:
+    """Run the same mutation prompt through multiple providers.
+
+    Each provider gets its own candidate subdirectory and workspace copy.
+    After all providers run, the diversity_review callback (if configured)
+    is invoked to check that the patches cover different parts of the
+    solution space rather than converging on the same idea.
+    """
+    cfg = config or default_mutator_config()
+    if providers is None:
+        providers = cfg.enabled_provider_names
+
+    command_templates = command_templates or {}
+    results: dict[str, CommandMutationArtifacts | None] = {}
+    errors: dict[str, str] = {}
+
+    for provider in providers:
+        candidate_id = f"{candidate_id_prefix}_{provider}"
+        candidate_dir = base_candidate_dir / candidate_id
+        try:
+            artifacts = patch_nanochat_adamw(
+                nanochat_root=nanochat_root,
+                candidate_dir=candidate_dir,
+                candidate_id=candidate_id,
+                provider=provider,
+                instruction=instruction,
+                command_template=command_templates.get(provider),
+                scope=scope,
+                config=cfg,
+            )
+            results[provider] = artifacts
+        except Exception as exc:
+            results[provider] = None
+            errors[provider] = str(exc)
+            candidate_dir.mkdir(parents=True, exist_ok=True)
+            (candidate_dir / "error.txt").write_text(f"{type(exc).__name__}: {exc}")
+
+    ensemble_result = EnsembleMutationResult(
+        candidate_id_prefix=candidate_id_prefix,
+        instruction=instruction,
+        scope=scope,
+        provider_results=results,
+        provider_errors=errors,
+    )
+
+    # --- Diversity review ---
+    # If a review function is configured and we got patches from 2+ providers,
+    # run the review and attach the result.  This is where you check that
+    # the providers aren't all proposing the same change.
+    review_fn = cfg.diversity_review
+    if review_fn is not None and len(ensemble_result.successful_providers) >= 2:
+        try:
+            review = review_fn(ensemble_result)
+            ensemble_result.diversity_review = review
+        except Exception as exc:
+            # Review failure is non-fatal — log it but keep the patches.
+            ensemble_result.diversity_review = DiversityReview(
+                covers_solution_space=False,
+                summary=f"diversity review raised {type(exc).__name__}: {exc}",
+            )
+
+    # Write ensemble summary (including review if present)
+    summary: dict[str, object] = {
+        "candidate_id_prefix": candidate_id_prefix,
+        "instruction": instruction,
+        "scope": scope,
+        "providers_attempted": providers,
+        "providers_succeeded": ensemble_result.successful_providers,
+        "providers_failed": list(errors),
+        "errors": errors,
+        "artifacts": {
+            provider: {
+                "candidate_id": a.candidate_id,
+                "workspace_dir": str(a.workspace_dir),
+                "patch_path": str(a.patch_path),
+                "response_path": str(a.response_path),
+            }
+            for provider, a in results.items()
+            if a is not None
+        },
+    }
+    if ensemble_result.diversity_review is not None:
+        dr = ensemble_result.diversity_review
+        summary["diversity_review"] = {
+            "covers_solution_space": dr.covers_solution_space,
+            "summary": dr.summary,
+            "verdicts": [
+                {"provider": v.provider, "is_duplicate_of": v.is_duplicate_of, "novelty_notes": v.novelty_notes}
+                for v in dr.verdicts
+            ],
+            "suggested_reprompts": dr.suggested_reprompts,
+        }
+
+    base_candidate_dir.mkdir(parents=True, exist_ok=True)
+    (base_candidate_dir / f"{candidate_id_prefix}_ensemble.json").write_text(
+        json.dumps(summary, indent=2)
+    )
+
+    return ensemble_result

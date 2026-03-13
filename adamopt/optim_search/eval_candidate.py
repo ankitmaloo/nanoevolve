@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from .candidate_optimizer import ToyNanoChatModel, build_candidate_optimizer
 from .config import ComparisonConfig, EvaluationConfig
 from .spec import MatrixOptimizerSpec
-from .types import CurvePoint, EvaluationOutcome, TrialMetrics
+from .types import CurvePoint, EvaluationOutcome, StepTelemetry, TrialMetrics
 
 
 def _seed_everything(seed: int) -> None:
@@ -95,6 +95,7 @@ class ToyNanoChatBackend:
         optimizer = build_candidate_optimizer(model, spec)
 
         curve: list[CurvePoint] = []
+        telemetry: list[StepTelemetry] = []
         step_times_ms: list[float] = []
         update_ratios: list[float] = []
         max_ratio = 0.0
@@ -146,6 +147,12 @@ class ToyNanoChatBackend:
             step_times_ms.append((time.perf_counter() - start) * 1000.0)
             update_ratios.append(optimizer.last_step_stats.mean_update_param_ratio)
             max_ratio = max(max_ratio, optimizer.last_step_stats.max_update_param_ratio)
+
+            telemetry.append(optimizer.snapshot_telemetry(
+                step=step,
+                loss=float(loss.detach().item()),
+                grad_norm=grad_norm,
+            ))
 
             invalid_params = False
             for param in model.parameters():
@@ -207,6 +214,7 @@ class ToyNanoChatBackend:
             valid=failure_type is None,
             metrics=metrics,
             curve=curve,
+            telemetry=telemetry,
             failure_type=failure_type,
             diagnostics={"spec": spec.to_dict(), "token_budget": self.eval_config.token_budget},
         )

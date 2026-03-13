@@ -9,6 +9,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from .spec import MatrixOptimizerSpec, StatefulControlConfig
+from .types import StepTelemetry
 
 
 POLAR_EXPRESS_COEFFS = [
@@ -442,6 +443,34 @@ class SpecCandidateOptimizer(torch.optim.Optimizer):
             )
 
         return None
+
+    def snapshot_telemetry(self, *, step: int, loss: float, grad_norm: float) -> StepTelemetry:
+        """Capture a telemetry snapshot of the optimizer's current internal state."""
+        gate = self._gate_value()
+        stateful = self._stateful_enabled()
+        return StepTelemetry(
+            step=step,
+            loss=loss,
+            grad_norm=grad_norm,
+            gate_value=gate,
+            update_multiplier=(
+                self.spec.update_multiplier * self._actuator_value("update_multiplier", gate)
+                if stateful else self.spec.update_multiplier
+            ),
+            trust_ratio_mix=self._actuator_value("trust_ratio_mix", gate) if stateful else 1.0,
+            clip_threshold=self._actuator_value("clip_threshold", gate) if stateful else None,
+            beta2_override=self._actuator_value("beta2", gate) if stateful else None,
+            orthogonal_mix=self._actuator_value("orthogonal_mix", gate) if stateful else 1.0,
+            loss_ema=self.training_signals.loss_ema,
+            loss_improvement_ema=self.training_signals.loss_improvement_ema,
+            grad_norm_ema=self.training_signals.grad_norm_ema,
+            update_ratio_ema=self.training_signals.update_ratio_ema,
+            grad_alignment_ema=self.training_signals.grad_alignment_ema,
+            step_fraction=self.training_signals.step_fraction,
+            mean_update_param_ratio=self.last_step_stats.mean_update_param_ratio,
+            max_update_param_ratio=self.last_step_stats.max_update_param_ratio,
+            mean_trust_ratio=self.last_step_stats.mean_trust_ratio,
+        )
 
     def _compute_grad_alignment(self) -> float:
         alignments: list[float] = []
