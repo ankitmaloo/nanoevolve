@@ -89,10 +89,20 @@ class ToyNanoChatBackend:
             losses.append(_loss_to_bpb(loss))
         return sum(losses) / len(losses)
 
-    def evaluate(self, spec: MatrixOptimizerSpec, *, seed: int, candidate_id: str) -> EvaluationOutcome:
+    def evaluate(
+        self,
+        spec: MatrixOptimizerSpec,
+        *,
+        seed: int,
+        candidate_id: str,
+        optimizer_factory: object | None = None,
+    ) -> EvaluationOutcome:
         _seed_everything(seed)
         model = self.build_model(seed)
-        optimizer = build_candidate_optimizer(model, spec)
+        if optimizer_factory is not None:
+            optimizer = optimizer_factory(model, spec)
+        else:
+            optimizer = build_candidate_optimizer(model, spec)
 
         curve: list[CurvePoint] = []
         telemetry: list[StepTelemetry] = []

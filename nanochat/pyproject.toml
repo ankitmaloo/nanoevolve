@@ -1,3 +1,10 @@
+[build-system]
+requires = ["setuptools>=80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["nanochat*"]
+
 [project]
 name = "nanochat"
 version = "0.1.0"

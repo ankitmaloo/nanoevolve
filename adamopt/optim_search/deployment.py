@@ -7,12 +7,12 @@ import shutil
 import subprocess
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
 def _utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _json_quote(value: str) -> str:
@@ -148,7 +148,7 @@ payload = {
     "phase": phase,
     "detail": detail,
     "pid": pid,
-    "updated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
 }
 with open(path, "w", encoding="utf-8") as handle:
     json.dump(payload, handle, indent=2)
@@ -232,7 +232,7 @@ def deploy_candidate_workspace(
     deployment_label: str | None = None,
     env: dict[str, str] | None = None,
 ) -> DeploymentArtifacts:
-    deployment_id = deployment_label or f"dep_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+    deployment_id = deployment_label or f"dep_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
     deployment_dir = (deployment_root or (candidate_dir / "deployments")) / deployment_id
     deployment_dir.mkdir(parents=True, exist_ok=True)
     payload_dir, launch_script_path, command_script_path = _make_payload(
