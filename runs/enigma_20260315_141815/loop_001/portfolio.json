@@ -1,0 +1,72 @@
+[
+  {
+    "id": "P1",
+    "role": "scout",
+    "hypothesis_id": "H01",
+    "family": "momentum",
+    "target_region": "momentum_pipeline",
+    "operator_family": "structural",
+    "why_selected": "Post-orthogonal momentum",
+    "expected_signal": "BPB improvement from Post-orthogonal momentum",
+    "acceptance_test": "val BPB improves \u22650.005",
+    "kill_condition": "no improvement or stability regression",
+    "overlap_check": "unique",
+    "result": "pending"
+  },
+  {
+    "id": "P2",
+    "role": "scout",
+    "hypothesis_id": "H02",
+    "family": "trust_ratio",
+    "target_region": "trust_ratio_system",
+    "operator_family": "policy",
+    "why_selected": "Layerwise trust ratio",
+    "expected_signal": "BPB improvement from Layerwise trust ratio",
+    "acceptance_test": "val BPB improves \u22650.005",
+    "kill_condition": "no improvement or stability regression",
+    "overlap_check": "unique",
+    "result": "pending"
+  },
+  {
+    "id": "P3",
+    "role": "exploit",
+    "hypothesis_id": "H04",
+    "family": "stateful_control",
+    "target_region": "stateful_gate_system",
+    "operator_family": "state",
+    "why_selected": "Stateful gate (phase-aware)",
+    "expected_signal": "BPB improvement from Stateful gate (phase-aware)",
+    "acceptance_test": "val BPB improves \u22650.005",
+    "kill_condition": "no improvement or stability regression",
+    "overlap_check": "unique",
+    "result": "pending"
+  },
+  {
+    "id": "P4",
+    "role": "exploit",
+    "hypothesis_id": "H05",
+    "family": "orthogonalization",
+    "target_region": "orthogonalization_depth",
+    "operator_family": "schedule",
+    "why_selected": "Fewer Polar Express steps (ns=3)",
+    "expected_signal": "BPB improvement from Fewer Polar Express steps (ns=3)",
+    "acceptance_test": "val BPB improves \u22650.005",
+    "kill_condition": "no improvement or stability regression",
+    "overlap_check": "unique",
+    "result": "pending"
+  },
+  {
+    "id": "P5",
+    "role": "wildcard",
+    "hypothesis_id": "H08",
+    "family": "compound",
+    "target_region": "trust_ratio+clipping",
+    "operator_family": "policy",
+    "why_selected": "Trust ratio + update clipping",
+    "expected_signal": "BPB improvement from Trust ratio + update clipping",
+    "acceptance_test": "val BPB improves \u22650.005",
+    "kill_condition": "no improvement or stability regression",
+    "overlap_check": "unique",
+    "result": "pending"
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "slot": "S2_P5",
+  "hypothesis": "H11",
+  "role": "exploit",
+  "title": "Reorder: trust_ratio before second_moment",
+  "code_mutation": "H11_trust_before_second",
+  "mechanism": "Trust ratio should see raw orthogonalized norms, not second_moment-rescaled ones.",
+  "spec_mutation": null,
+  "valid": true,
+  "final_validation_bpb": 6.574117661076766,
+  "delta_vs_stage1_baseline": -0.0015732972900934783,
+  "delta_vs_merged": 8.788313459096031e-05,
+  "composite_score": 11.979370693189866,
+  "winner_vs_baseline": false,
+  "speed_ratio": 2.2775614599560887,
+  "tokens_per_sec": 116302.56985012726,
+  "stability_penalty": 0.0,
+  "eval_time_s": 0.04803700000047684
+}

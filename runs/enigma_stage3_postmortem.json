@@ -1,0 +1,177 @@
+{
+  "title": "Enigma Stage 3 Postmortem — Deep Code-Level Optimizer Mutations",
+  "date": "2026-03-15",
+  "stage": 3,
+  "objective": "Generate code-level mutations via deep hypothesis generation with set-level gap analysis, compound top winners, validate at 5000-step horizon on real GPT-2 training",
+
+  "infrastructure": {
+    "hardware": "NVIDIA B200 GPU (183 GB VRAM)",
+    "cluster": "Slurm, priority partition, us-west-a2 nodes",
+    "model": "NanoChat GPT-2 (12 layers, 768 dim, 6 heads)",
+    "dataset": "karpathy/climbmix-400b-shuffle (3 shards)",
+    "batch_size": "1024 tokens (device_batch=2, seq_len=512, grad_accum=1)",
+    "step_time": "~66-68ms per step"
+  },
+
+  "stage2_recap": {
+    "baseline_bpb_1000steps": 1.741303,
+    "sole_winner": "H02 (layerwise trust ratio, clamp [0.5, 1.5])",
+    "code_level_winners_at_1000steps": 0,
+    "key_lesson": "All Stage 2 code-level mutations (bf16 polar, simplified second moment, reordered trust, trust-gated WD) failed at 1000-step horizon despite some winning at 200 steps"
+  },
+
+  "methodology": {
+    "hypothesis_generation": "Deep Enigma doctrine with 3 parallel subagents covering trust variants, pipeline structure, and production parity gaps",
+    "set_level_gap_analysis": "Deduplication, coverage map across 5 pipeline stages (momentum, ortho, second_moment, trust, WD), blind spot identification, portfolio selection",
+    "portfolio_design": "8 hypotheses across 5 pipeline stages (3 exploit, 3 scout, 1 wildcard, 1 dropped)",
+    "evaluation_phases": [
+      "Phase 1: Toy screening (24 steps) — validity gate only",
+      "Phase 2: GPT-2 1000-step evaluation — all 8 mutations vs H02 baseline",
+      "Phase 3: 5000-step compound evaluation — top 3 singles + 2 compounds"
+    ]
+  },
+
+  "portfolio": [
+    {"slot": "S3_P1", "role": "exploit", "id": "H39", "title": "Per-neuron trust (aspect-aware axis)", "method_target": "_apply_trust_ratio"},
+    {"slot": "S3_P2", "role": "exploit", "id": "H42", "title": "Second moment bias correction (first 50 steps)", "method_target": "_apply_second_moment"},
+    {"slot": "S3_P3", "role": "exploit", "id": "H59", "title": "Soft cautious WD with sigmoid alignment", "method_target": "_step_matrix_group"},
+    {"slot": "S3_P4", "role": "scout", "id": "H46", "title": "Decoupled Nesterov blend (0.8)", "method_target": "_apply_momentum"},
+    {"slot": "S3_P5", "role": "scout", "id": "H41", "title": "Momentum warmup 0.85→0.95 over 200 steps", "method_target": "_apply_momentum"},
+    {"slot": "S3_P6", "role": "scout", "id": "H44", "title": "Post-ortho scale preservation", "method_target": "_orthogonalize"},
+    {"slot": "S3_P7", "role": "exploit", "id": "H54", "title": "Cautious WD on raw gradient alignment", "method_target": "_step_matrix_group"},
+    {"slot": "S3_P8", "role": "wildcard", "id": "H36", "title": "Asymmetric trust — soft floor, hard ceiling", "method_target": "_apply_trust_ratio"}
+  ],
+
+  "phase2_results_1000steps": {
+    "baseline_h02_bpb": 1.741303,
+    "rankings": [
+      {"rank": 1, "id": "H41", "bpb": 1.726226, "delta": "+0.015077", "mutation": "H41_momentum_warmup", "verdict": "WIN"},
+      {"rank": 2, "id": "H39", "bpb": 1.727758, "delta": "+0.013545", "mutation": "H39_perneuron_trust", "verdict": "WIN"},
+      {"rank": 3, "id": "H46", "bpb": 1.728731, "delta": "+0.012572", "mutation": "H46_nesterov_decouple", "verdict": "WIN"},
+      {"rank": 4, "id": "H54", "bpb": 1.734009, "delta": "+0.007294", "mutation": "H54_raw_grad_wd", "verdict": "WIN"},
+      {"rank": 5, "id": "H42", "bpb": 1.734325, "delta": "+0.006978", "mutation": "H42_bias_correction", "verdict": "WIN"},
+      {"rank": 6, "id": "H36", "bpb": 1.739507, "delta": "+0.001796", "mutation": "H36_asymmetric_trust", "verdict": "WIN"},
+      {"rank": 7, "id": "H59", "bpb": 1.740180, "delta": "+0.001124", "mutation": "H59_soft_wd", "verdict": "WIN"},
+      {"rank": 8, "id": "H44", "bpb": 1.806887, "delta": "-0.065584", "mutation": "H44_scale_preserve", "verdict": "LOSE"}
+    ],
+    "winners_count": "7/8",
+    "improvement_vs_stage2": "Stage 2 had 0/4 code-level winners at 1000 steps; Stage 3 has 7/8"
+  },
+
+  "phase3_results_5000steps": {
+    "baseline_h02_bpb": 1.540660,
+    "rankings": [
+      {"rank": 1, "id": "H41_solo", "bpb": 1.508542, "delta": "+0.032118", "mutation": "H41_momentum_warmup", "verdict": "WIN"},
+      {"rank": 2, "id": "H41+H39+H46", "bpb": 1.523664, "delta": "+0.016995", "mutation": "COMPOUND_H41_H39_H46", "verdict": "WIN"},
+      {"rank": 3, "id": "H39_solo", "bpb": 1.526923, "delta": "+0.013737", "mutation": "H39_perneuron_trust", "verdict": "WIN"},
+      {"rank": 4, "id": "baseline_h02", "bpb": 1.540660, "delta": "+0.000000", "mutation": "none", "verdict": "BASE"},
+      {"rank": 5, "id": "H41+H46", "bpb": 1.550334, "delta": "-0.009674", "mutation": "COMPOUND_H41_H46", "verdict": "LOSE"}
+    ],
+    "key_finding": "H41 solo is the clear winner — its advantage DOUBLED from 1k (+0.015) to 5k (+0.032). Compounding hurts."
+  },
+
+  "ranking_evolution": {
+    "description": "How rankings shifted across horizons — the meta-lesson continues",
+    "H41_momentum_warmup": {
+      "1000_steps": {"rank": 1, "delta": "+0.015"},
+      "5000_steps": {"rank": 1, "delta": "+0.032"},
+      "trajectory": "Strengthens with horizon. Only mutation that consistently improves."
+    },
+    "H39_perneuron_trust": {
+      "1000_steps": {"rank": 2, "delta": "+0.014"},
+      "5000_steps": {"rank": 3, "delta": "+0.014"},
+      "trajectory": "Stable but doesn't grow. Reliable second-tier."
+    },
+    "H46_nesterov_decouple": {
+      "1000_steps": {"rank": 3, "delta": "+0.013"},
+      "5000_steps": "Not tested solo; compound H41+H46 LOSES (-0.010)",
+      "trajectory": "REVERSAL when combined with H41. Interferes with momentum warmup."
+    },
+    "COMPOUND_H41_H39_H46": {
+      "5000_steps": {"rank": 2, "delta": "+0.017"},
+      "trajectory": "Worse than H41 alone (0.017 vs 0.032). H39+H46 drag it down."
+    },
+    "COMPOUND_H41_H46": {
+      "5000_steps": {"rank": 5, "delta": "-0.010"},
+      "trajectory": "CATASTROPHIC. H46 cancels H41's warmup benefit. Decoupled Nesterov + warmup = bad interaction."
+    }
+  },
+
+  "negative_knowledge": {
+    "NK12": "H44 (post-ortho scale preservation): -0.066 BPB at 1000 steps. Polar Express norm distortion is beneficial implicit regularization — DO NOT preserve pre-ortho scale.",
+    "NK13": "Compounding top mutations does NOT automatically help. H41+H39+H46 compound (Δ=+0.017) is worse than H41 alone (Δ=+0.032). The compound cuts the gain in half.",
+    "NK14": "H46 (decoupled Nesterov blend 0.8) actively interferes with H41 (momentum warmup). H41+H46 without H39 LOSES (-0.010). These touch the same method and create conflicting dynamics.",
+    "NK15": "H59 (soft cautious WD): marginal +0.001 at 1000 steps. Not worth the complexity.",
+    "NK16": "H36 (asymmetric trust): marginal +0.002 at 1000 steps. Sigmoid floor adds complexity for negligible gain."
+  },
+
+  "positive_knowledge": {
+    "PK01": "H41 (momentum warmup 0.85→0.95 over 200 steps): +0.032 BPB at 5000 steps. The single best mutation across all stages. Effect GROWS with training length.",
+    "PK02": "H39 (per-neuron trust, aspect-aware): +0.014 BPB, stable across 1k and 5k horizons. Reliable but doesn't compound well with momentum changes.",
+    "PK03": "H42 (second moment bias correction for first 50 steps): +0.007 BPB at 1000 steps. Small but principled — untested at 5k.",
+    "PK04": "H54 (raw gradient alignment for cautious WD): +0.007 BPB at 1000 steps. Principled — untested at 5k."
+  },
+
+  "meta_lessons": [
+    {
+      "id": "ML01",
+      "lesson": "Deep hypothesis generation with set-level gap analysis dramatically outperforms random exploration",
+      "evidence": "Stage 2 code-level: 0/4 winners at 1000 steps. Stage 3: 7/8 winners. The shared context file + 3 parallel subagents + coverage-based portfolio selection was the key methodological improvement."
+    },
+    {
+      "id": "ML02",
+      "lesson": "Compounding mutations is NOT free — interactions can cancel benefits",
+      "evidence": "H41 solo (+0.032) > H41+H39+H46 compound (+0.017) > H41+H46 (-0.010). More mutations ≠ more gain."
+    },
+    {
+      "id": "ML03",
+      "lesson": "Mutations that strengthen with horizon length are the most valuable",
+      "evidence": "H41 went from +0.015 at 1k to +0.032 at 5k — it doubled. H39 stayed flat at +0.014. H41 is fundamentally better."
+    },
+    {
+      "id": "ML04",
+      "lesson": "Momentum is the highest-leverage part of the optimizer pipeline",
+      "evidence": "H41 (momentum warmup) is the best single mutation. H46 (Nesterov blend) was #3 at 1k. Both modify _apply_momentum. The momentum schedule has more room for improvement than trust, WD, or second moment."
+    },
+    {
+      "id": "ML05",
+      "lesson": "Mutations to the same method interact unpredictably",
+      "evidence": "H41 and H46 both modify _apply_momentum. Each wins alone at 1k steps, but H41+H46 LOSES at 5k. The warmup schedule and the fixed Nesterov blend create conflicting early-training dynamics."
+    },
+    {
+      "id": "ML06",
+      "lesson": "Single clean mutations beat compound stacks",
+      "evidence": "Across all stages: H02 alone > H02+clip+gate (Stage 2 result). H41 alone > H41+H39+H46 (Stage 3 result). Simplicity wins."
+    },
+    {
+      "id": "ML07",
+      "lesson": "The 5x horizon test is essential — 1000-step rankings are not final",
+      "evidence": "H41's advantage doubled at 5k. H46 looked good at 1k but kills H41 at 5k. Rankings are unstable below 5k steps."
+    }
+  ],
+
+  "final_recommendation": {
+    "best_optimizer": "H02 (layerwise trust ratio [0.5, 1.5]) + H41 (momentum warmup 0.85→0.95 over 200 steps)",
+    "bpb_at_5000_steps": 1.508542,
+    "improvement_vs_production_muon": "+0.032 BPB vs H02 baseline, which itself was +0.006 vs production Muon at 1000 steps",
+    "code_change": "Override _apply_momentum: linearly warm beta from 0.85 to spec.momentum (0.95) over first 200 steps. 4 lines of code.",
+    "overhead": "Zero — 66.1ms vs 66.1ms baseline",
+    "next_steps": [
+      "Test H41 at 10k+ steps to confirm continued strengthening",
+      "Test H41 + H42 (bias correction) — independent methods, likely safe to compound",
+      "Test H41 + H54 (raw grad WD) — independent methods, likely safe to compound",
+      "Do NOT compound H41 with H46 or any other momentum mutation",
+      "Consider deploying H41 to production Muon — the warmup schedule is trivially portable"
+    ]
+  },
+
+  "artifacts": {
+    "stage3_runner": "enigma/run_stage3.py",
+    "context_file": "enigma/stage3_context.md",
+    "1k_results": "runs/enigma_s3_gpt2/results/",
+    "5k_results": "runs/enigma_s3_compound/results/",
+    "1k_slurm": "runs/enigma_s3_gpt2/slurm_s3.sh",
+    "5k_slurm": "runs/enigma_s3_compound/slurm_compound.sh",
+    "stage2_postmortem": "runs/enigma_stage2_postmortem.json"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "slot": "S2_P4",
+  "hypothesis": "H19",
+  "role": "exploit",
+  "title": "Amplify gate step_fraction annealing",
+  "code_mutation": "none",
+  "mechanism": "Push step_fraction from -1.0 to -2.0, bias +0.5, sharpness 1.5. Stronger early-aggressive/late-conservative.",
+  "spec_mutation": {
+    "stateful_control": {
+      "gate": {
+        "coefficients": {
+          "step_fraction": -2.0
+        },
+        "bias": 0.5,
+        "sharpness": 1.5
+      }
+    }
+  },
+  "valid": true,
+  "final_validation_bpb": 6.57337108438937,
+  "delta_vs_stage1_baseline": -0.000826720602697506,
+  "delta_vs_merged": 0.0008344598219869326,
+  "composite_score": 12.151523091537829,
+  "winner_vs_baseline": false,
+  "speed_ratio": 2.286101149601009,
+  "tokens_per_sec": 116738.64495452681,
+  "stability_penalty": 0.0,
+  "eval_time_s": 0.04814600001554936
+}

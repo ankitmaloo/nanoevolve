@@ -1,0 +1,11 @@
+{
+  "slot": "S3_P7",
+  "hypothesis": "H54",
+  "role": "exploit",
+  "title": "Cautious WD on raw gradient alignment",
+  "code_mutation": "H54_raw_grad_wd",
+  "valid": true,
+  "final_validation_bpb": 6.576067428389598,
+  "delta_vs_baseline": -0.00019726410054055066,
+  "eval_time_s": 0.04649445798713714
+}

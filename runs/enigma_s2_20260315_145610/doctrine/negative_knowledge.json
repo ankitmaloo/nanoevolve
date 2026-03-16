@@ -1,0 +1,16 @@
+[
+  {
+    "id": "NK01",
+    "hypothesis": "H01",
+    "observed": "Post-orthogonal momentum catastrophic (\u0394=-0.131)",
+    "cause": "Orthogonalization extremely sensitive to input quality",
+    "do_not_repeat": "Never change momentum_placement"
+  },
+  {
+    "id": "NK02",
+    "hypothesis": "H05",
+    "observed": "ns_steps=3 lost (\u0394=-0.009)",
+    "cause": "Orthogonalization quality matters for BPB",
+    "do_not_repeat": "Never reduce ns_steps without compensation"
+  }
+]

@@ -1,0 +1,78 @@
+{
+  "clip": {
+    "mode": "none",
+    "threshold": 1.0
+  },
+  "decay": {
+    "mode": "cautious",
+    "weight_decay": 0.2
+  },
+  "lr_aspect_scale": true,
+  "matrix_only": true,
+  "metadata": {
+    "code_mutation": "H36_asymmetric_trust",
+    "hypothesis": "H36",
+    "slot": "S3_P8",
+    "stage": 3
+  },
+  "momentum": 0.95,
+  "momentum_placement": "pre_orthogonal",
+  "name": "enigma_H36",
+  "nesterov": true,
+  "ns_steps": 5,
+  "orthogonalization": "polar_express",
+  "second_moment": {
+    "beta2": 0.95,
+    "eps": 1e-10,
+    "mode": "factored_rms"
+  },
+  "stateful_control": {
+    "actuators": {
+      "beta2": {
+        "aggressive": 0.9,
+        "conservative": 0.99
+      },
+      "clip_threshold": {
+        "aggressive": 2.0,
+        "conservative": 0.5
+      },
+      "orthogonal_mix": {
+        "aggressive": 1.0,
+        "conservative": 0.35
+      },
+      "trust_ratio_mix": {
+        "aggressive": 1.0,
+        "conservative": 0.0
+      },
+      "update_multiplier": {
+        "aggressive": 1.15,
+        "conservative": 0.85
+      }
+    },
+    "ema_beta": 0.9,
+    "enabled": false,
+    "gate": {
+      "bias": 0.0,
+      "coefficients": {
+        "grad_alignment_ema": 0.0,
+        "grad_norm_ema": 0.0,
+        "loss_ema": 0.0,
+        "loss_improvement_ema": 0.0,
+        "step_fraction": 0.0,
+        "update_ratio_ema": 0.0
+      },
+      "sharpness": 1.0
+    },
+    "grad_norm_normalizer": 1.0,
+    "improvement_normalizer": 0.05,
+    "loss_normalizer": 2.0,
+    "update_ratio_normalizer": 0.05
+  },
+  "trust_ratio": {
+    "clamp_max": 1.5,
+    "clamp_min": 0.5,
+    "eps": 1e-08,
+    "mode": "layerwise"
+  },
+  "update_multiplier": 1.0
+}

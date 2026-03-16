@@ -1,0 +1,180 @@
+{
+  "slot": "P1",
+  "hypothesis": "H01",
+  "role": "scout",
+  "title": "Post-orthogonal momentum",
+  "spec_name": "enigma_H01_post_momentum",
+  "spec_file": "specs/P1_H01_enigma_H01_post_momentum.json",
+  "valid": true,
+  "final_validation_bpb": 6.581110303678196,
+  "best_validation_bpb": 6.581110303678196,
+  "delta_bpb": -0.008565939891523655,
+  "composite_score": 10.522667093060022,
+  "winner": false,
+  "hierarchy_level": 0,
+  "dominant_axes": [
+    "stability",
+    "throughput_adjusted_efficiency"
+  ],
+  "speed_ratio": 2.375265011684608,
+  "tokens_per_sec": 125652.72283458574,
+  "mean_step_time_ms": 1.5280210063792765,
+  "stability_penalty": 0.0,
+  "memory_bytes": 97568,
+  "grad_norm_spikes": 0,
+  "lineage": {
+    "mutation": "toggle_momentum_placement",
+    "value": "post_orthogonal"
+  },
+  "eval_time_s": 0.04606533295009285,
+  "curve": [
+    {
+      "step": 1,
+      "train_bpb": 7.996951113548187,
+      "val_bpb": null,
+      "tokens_seen": 192
+    },
+    {
+      "step": 2,
+      "train_bpb": 8.958768904012668,
+      "val_bpb": null,
+      "tokens_seen": 384
+    },
+    {
+      "step": 3,
+      "train_bpb": 8.880238185975692,
+      "val_bpb": null,
+      "tokens_seen": 576
+    },
+    {
+      "step": 4,
+      "train_bpb": 8.459741980477332,
+      "val_bpb": null,
+      "tokens_seen": 768
+    },
+    {
+      "step": 5,
+      "train_bpb": 8.240400811011733,
+      "val_bpb": null,
+      "tokens_seen": 960
+    },
+    {
+      "step": 6,
+      "train_bpb": 8.338297463466466,
+      "val_bpb": 7.569896521641824,
+      "tokens_seen": 1152
+    },
+    {
+      "step": 7,
+      "train_bpb": 7.528909272322898,
+      "val_bpb": null,
+      "tokens_seen": 1344
+    },
+    {
+      "step": 8,
+      "train_bpb": 7.3352416729781,
+      "val_bpb": null,
+      "tokens_seen": 1536
+    },
+    {
+      "step": 9,
+      "train_bpb": 7.125689068069009,
+      "val_bpb": null,
+      "tokens_seen": 1728
+    },
+    {
+      "step": 10,
+      "train_bpb": 7.14107945152942,
+      "val_bpb": null,
+      "tokens_seen": 1920
+    },
+    {
+      "step": 11,
+      "train_bpb": 6.972663032914903,
+      "val_bpb": null,
+      "tokens_seen": 2112
+    },
+    {
+      "step": 12,
+      "train_bpb": 7.115463667579309,
+      "val_bpb": 6.883963496680361,
+      "tokens_seen": 2304
+    },
+    {
+      "step": 13,
+      "train_bpb": 6.909407125996958,
+      "val_bpb": null,
+      "tokens_seen": 2496
+    },
+    {
+      "step": 14,
+      "train_bpb": 6.884111229777452,
+      "val_bpb": null,
+      "tokens_seen": 2688
+    },
+    {
+      "step": 15,
+      "train_bpb": 6.705538203733581,
+      "val_bpb": null,
+      "tokens_seen": 2880
+    },
+    {
+      "step": 16,
+      "train_bpb": 6.874110782595082,
+      "val_bpb": null,
+      "tokens_seen": 3072
+    },
+    {
+      "step": 17,
+      "train_bpb": 6.644634331548836,
+      "val_bpb": null,
+      "tokens_seen": 3264
+    },
+    {
+      "step": 18,
+      "train_bpb": 6.657723587140703,
+      "val_bpb": 6.61736080682706,
+      "tokens_seen": 3456
+    },
+    {
+      "step": 19,
+      "train_bpb": 6.682950690299863,
+      "val_bpb": null,
+      "tokens_seen": 3648
+    },
+    {
+      "step": 20,
+      "train_bpb": 6.78642164443436,
+      "val_bpb": null,
+      "tokens_seen": 3840
+    },
+    {
+      "step": 21,
+      "train_bpb": 6.440139392436319,
+      "val_bpb": null,
+      "tokens_seen": 4032
+    },
+    {
+      "step": 22,
+      "train_bpb": 6.604946239174527,
+      "val_bpb": null,
+      "tokens_seen": 4224
+    },
+    {
+      "step": 23,
+      "train_bpb": 6.557862892813119,
+      "val_bpb": null,
+      "tokens_seen": 4416
+    },
+    {
+      "step": 24,
+      "train_bpb": 6.737931479988893,
+      "val_bpb": 6.581110303678196,
+      "tokens_seen": 4608
+    }
+  ],
+  "notes": [
+    "sample_efficiency_below_threshold",
+    "time_to_target_not_reached"
+  ]
+}

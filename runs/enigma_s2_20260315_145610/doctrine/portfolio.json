@@ -1,0 +1,84 @@
+[
+  {
+    "slot_id": "S2_P1",
+    "role": "scout",
+    "hypothesis_id": "H10",
+    "title": "bfloat16 Polar Express dtype (match production)",
+    "code_mutation": "H10_bf16_polar",
+    "mechanism": "Production Muon casts to bfloat16 for Polar Express; candidate uses float32. Coefficients were tuned for bf16 arithmetic.",
+    "spec_mutation": null
+  },
+  {
+    "slot_id": "S2_P2",
+    "role": "scout",
+    "hypothesis_id": "H20",
+    "title": "Widen trust ratio clamp [0.1, 8.0]",
+    "code_mutation": null,
+    "mechanism": "Stage 1 trust won with tight [0.5, 1.5]. Test if wider range amplifies the win.",
+    "spec_mutation": {
+      "trust_ratio": {
+        "clamp_min": 0.1,
+        "clamp_max": 8.0
+      }
+    }
+  },
+  {
+    "slot_id": "S2_P3",
+    "role": "scout",
+    "hypothesis_id": "H18",
+    "title": "Simplified second moment (no norm-preserving rescale)",
+    "code_mutation": "H18_simple_second_moment",
+    "mechanism": "Remove norm-preserving rescale from _apply_second_moment. Let trust_ratio handle magnitude.",
+    "spec_mutation": null
+  },
+  {
+    "slot_id": "S2_P4",
+    "role": "exploit",
+    "hypothesis_id": "H19",
+    "title": "Amplify gate step_fraction annealing",
+    "code_mutation": null,
+    "mechanism": "Push step_fraction from -1.0 to -2.0, bias +0.5, sharpness 1.5. Stronger early-aggressive/late-conservative.",
+    "spec_mutation": {
+      "stateful_control": {
+        "gate": {
+          "coefficients": {
+            "step_fraction": -2.0
+          },
+          "bias": 0.5,
+          "sharpness": 1.5
+        }
+      }
+    }
+  },
+  {
+    "slot_id": "S2_P5",
+    "role": "exploit",
+    "hypothesis_id": "H11",
+    "title": "Reorder: trust_ratio before second_moment",
+    "code_mutation": "H11_trust_before_second",
+    "mechanism": "Trust ratio should see raw orthogonalized norms, not second_moment-rescaled ones.",
+    "spec_mutation": null
+  },
+  {
+    "slot_id": "S2_P6",
+    "role": "exploit",
+    "hypothesis_id": "H16",
+    "title": "Cautious WD gated by trust threshold",
+    "code_mutation": "H16_trust_gated_wd",
+    "mechanism": "Only apply cautious WD where trust >= 0.8, preventing double-penalization of constrained neurons.",
+    "spec_mutation": null
+  },
+  {
+    "slot_id": "S2_P7",
+    "role": "wildcard",
+    "hypothesis_id": "H23",
+    "title": "Disable second_moment, rely on trust+clip",
+    "code_mutation": null,
+    "mechanism": "Tests whether NorMuon variance reduction is essential when trust+clip are present.",
+    "spec_mutation": {
+      "second_moment": {
+        "mode": "none"
+      }
+    }
+  }
+]

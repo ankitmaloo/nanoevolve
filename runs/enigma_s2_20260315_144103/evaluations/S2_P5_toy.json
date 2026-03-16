@@ -1,0 +1,17 @@
+{
+  "slot": "S2_P5",
+  "hypothesis": "H14",
+  "role": "wildcard",
+  "title": "Spectral-norm trust ratio",
+  "code_mutation": "H14_spectral_trust",
+  "mechanism": "Spectral norm captures effective scale better than Frobenius for trust ratio.",
+  "valid": true,
+  "final_validation_bpb": 6.573456903732151,
+  "delta_vs_stage1_baseline": -0.0009125399454781302,
+  "delta_vs_merged": 0.0007486404792063084,
+  "composite_score": 11.190976345341241,
+  "winner_vs_baseline": false,
+  "speed_ratio": 2.057502394013705,
+  "tokens_per_sec": 114959.18065755421,
+  "eval_time_s": 0.04864816693589091
+}

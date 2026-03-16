@@ -1,0 +1,90 @@
+[
+  {
+    "slot": "S3_P1",
+    "hypothesis": "H39",
+    "role": "exploit",
+    "title": "Per-neuron trust (aspect-aware axis)",
+    "code_mutation": "H39_perneuron_trust",
+    "valid": true,
+    "final_validation_bpb": 6.575969054313304,
+    "delta_vs_baseline": -9.889002424667837e-05,
+    "eval_time_s": 0.0484570839907974
+  },
+  {
+    "slot": "S3_P2",
+    "hypothesis": "H42",
+    "role": "exploit",
+    "title": "Second moment bias correction",
+    "code_mutation": "H42_bias_correction",
+    "valid": true,
+    "final_validation_bpb": 6.57587050825436,
+    "delta_vs_baseline": -3.439653024628342e-07,
+    "eval_time_s": 0.04804258397780359
+  },
+  {
+    "slot": "S3_P3",
+    "hypothesis": "H59",
+    "role": "exploit",
+    "title": "Soft cautious WD with sigmoid",
+    "code_mutation": "H59_soft_wd",
+    "valid": true,
+    "final_validation_bpb": 6.575940677175912,
+    "delta_vs_baseline": -7.051288685477886e-05,
+    "eval_time_s": 0.048226292012259364
+  },
+  {
+    "slot": "S3_P4",
+    "hypothesis": "H46",
+    "role": "scout",
+    "title": "Nesterov blend decoupled (0.8)",
+    "code_mutation": "H46_nesterov_decouple",
+    "valid": true,
+    "final_validation_bpb": 6.576638754755764,
+    "delta_vs_baseline": -0.0007685904667065202,
+    "eval_time_s": 0.04671870800666511
+  },
+  {
+    "slot": "S3_P5",
+    "hypothesis": "H41",
+    "role": "scout",
+    "title": "Momentum warmup 0.85 to 0.95",
+    "code_mutation": "H41_momentum_warmup",
+    "valid": true,
+    "final_validation_bpb": 6.577069227330874,
+    "delta_vs_baseline": -0.001199063041816828,
+    "eval_time_s": 0.046209834050387144
+  },
+  {
+    "slot": "S3_P6",
+    "hypothesis": "H44",
+    "role": "scout",
+    "title": "Post-ortho scale preservation",
+    "code_mutation": "H44_scale_preserve",
+    "valid": true,
+    "final_validation_bpb": 6.58132425009587,
+    "delta_vs_baseline": -0.005454085806812614,
+    "eval_time_s": 0.04710208298638463
+  },
+  {
+    "slot": "S3_P7",
+    "hypothesis": "H54",
+    "role": "exploit",
+    "title": "Cautious WD on raw gradient alignment",
+    "code_mutation": "H54_raw_grad_wd",
+    "valid": true,
+    "final_validation_bpb": 6.576067428389598,
+    "delta_vs_baseline": -0.00019726410054055066,
+    "eval_time_s": 0.04649445798713714
+  },
+  {
+    "slot": "S3_P8",
+    "hypothesis": "H36",
+    "role": "wildcard",
+    "title": "Asymmetric trust \u2014 soft floor, hard ceiling",
+    "code_mutation": "H36_asymmetric_trust",
+    "valid": true,
+    "final_validation_bpb": 6.573780231115773,
+    "delta_vs_baseline": 0.0020899331732842086,
+    "eval_time_s": 0.04810287500731647
+  }
+]

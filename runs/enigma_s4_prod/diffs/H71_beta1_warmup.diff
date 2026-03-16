@@ -1,0 +1,40 @@
+## H71: AdamW Beta1 Warmup 0.7 → 0.8 (4th PLACE: +0.020 BPB)
+##
+## Attack surface: AdamW fused kernel (nanochat/nanochat/optim.py)
+## Mechanism: Warm AdamW's beta1 (first moment EMA) from (beta1-0.1) to beta1
+##   over 300 steps. Lower beta1 early = less smoothing = faster initial adaptation.
+## Result: Fourth best Stage 4 mutation. 1.5193 BPB vs 1.5395 baseline.
+
+--- a/nanochat/nanochat/optim.py
++++ b/nanochat/nanochat/optim.py
+@@ adamw_step_fused replacement
+ @torch.compile(dynamic=False, fullgraph=True)
+-def adamw_step_fused(p, grad, exp_avg, exp_avg_sq, step_t, lr_t,
+-                     beta1_t, beta2_t, eps_t, wd_t):
+-    p.mul_(1 - lr_t * wd_t)
+-    exp_avg.lerp_(grad, 1 - beta1_t)
+-    exp_avg_sq.lerp_(grad.square(), 1 - beta2_t)
+-    bias1 = 1 - beta1_t ** step_t
+-    bias2 = 1 - beta2_t ** step_t
+-    denom = (exp_avg_sq / bias2).sqrt() + eps_t
+-    step_size = lr_t / bias1
+-    p.add_(exp_avg / denom, alpha=-step_size)
++def adamw_step_warmup(p, grad, exp_avg, exp_avg_sq, step_t, lr_t,
++                      beta1_t, beta2_t, eps_t, wd_t):
++    # Warm beta1 from (beta1-0.1) to beta1 over 300 steps
++    warmup = 300.0
++    frac = (step_t / warmup).clamp(max=1.0)
++    effective_beta1 = (beta1_t - 0.1) + 0.1 * frac
++    # Standard AdamW with warmed beta1
++    p.mul_(1 - lr_t * wd_t)
++    exp_avg.lerp_(grad, 1 - effective_beta1)  # ← effective_beta1 replaces beta1_t
++    exp_avg_sq.lerp_(grad.square(), 1 - beta2_t)
++    bias1 = 1 - effective_beta1 ** step_t
++    bias2 = 1 - beta2_t ** step_t
++    denom = (exp_avg_sq / bias2).sqrt() + eps_t
++    step_size = lr_t / bias1
++    p.add_(exp_avg / denom, alpha=-step_size)
+
+## Applied via monkey-patch in enigma/stage4_patch.py:
+##   optim_module.adamw_step_fused = adamw_step_warmup
+## With default beta1=0.8: warms 0.7 → 0.8 over 300 steps

@@ -1,0 +1,19 @@
+## H78: Scalar LR Warmup 200 Steps (LOST: -0.011 BPB)
+##
+## Attack surface: AdamW scalar param groups (training loop)
+## Mechanism: Add 200-step linear LR warmup for scalar parameters (biases,
+##   layer norms) that have small LR. Production has no warmup for these.
+## Result: 1.5506 BPB vs 1.5395 baseline. Worst performer.
+
+--- a/training_loop (production)
++++ b/training_loop (H78 applied)
+@@ after standard schedule application
++    if mutation == 'H78_scalar_warmup':
++        if step < 200:
++            warmup_mult = (step + 1) / 200
++            for group in optimizer.param_groups:
++                if group['kind'] == 'adamw' and group.get('initial_lr', 0) < 0.1:
++                    group['lr'] = group['initial_lr'] * lrm * warmup_mult
+
+## NEGATIVE RESULT: Scalar parameters don't need warmup. The extra conservatism
+##   early in training slows down adaptation without any stability benefit.

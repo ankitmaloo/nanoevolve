@@ -1,0 +1,11 @@
+{
+  "slot": "S3_P6",
+  "hypothesis": "H44",
+  "role": "scout",
+  "title": "Post-ortho scale preservation",
+  "code_mutation": "H44_scale_preserve",
+  "valid": true,
+  "final_validation_bpb": 6.58132425009587,
+  "delta_vs_baseline": -0.005454085806812614,
+  "eval_time_s": 0.04710208298638463
+}

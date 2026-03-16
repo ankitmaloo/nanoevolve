@@ -1,0 +1,17 @@
+{
+  "slot": "S2_P2",
+  "hypothesis": "H11",
+  "role": "scout",
+  "title": "Gradient centralization before orthogonalization",
+  "code_mutation": "H11_grad_centralization",
+  "mechanism": "Remove DC component of gradients \u2014 reduces variance, helps orthogonalization",
+  "valid": true,
+  "final_validation_bpb": 6.57702072822333,
+  "delta_vs_stage1_baseline": -0.004476364436657221,
+  "delta_vs_merged": -0.0028151840119727822,
+  "composite_score": 10.691592973986594,
+  "winner_vs_baseline": false,
+  "speed_ratio": 2.093814998786833,
+  "tokens_per_sec": 116988.08099050446,
+  "eval_time_s": 0.047669374966062605
+}

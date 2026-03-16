@@ -1,0 +1,17 @@
+{
+  "slot": "S2_P3",
+  "hypothesis": "H12",
+  "role": "exploit",
+  "title": "Adaptive NS steps by shape aspect ratio",
+  "code_mutation": "H12_adaptive_ns_steps",
+  "mechanism": "Wide matrices converge faster in Polar Express \u2014 use fewer iters. Save compute.",
+  "valid": true,
+  "final_validation_bpb": 6.574205544211357,
+  "delta_vs_stage1_baseline": -0.0016611804246844386,
+  "delta_vs_merged": 0.0,
+  "composite_score": 11.224269262660949,
+  "winner_vs_baseline": false,
+  "speed_ratio": 2.096223353400935,
+  "tokens_per_sec": 117122.64339683534,
+  "eval_time_s": 0.04809641698375344
+}

@@ -1,0 +1,20 @@
+## H60: Muon Beta2 Warmup 0.8 → 0.95 (3rd PLACE: +0.031 BPB)
+##
+## Attack surface: Muon second moment EMA coefficient (training loop)
+## Mechanism: Warm Muon's beta2 (NorMuon variance reduction) from 0.8 to 0.95
+##   over 500 steps. Lower beta2 early = faster adaptation to initial gradient scales.
+## Result: Third best Stage 4 mutation. 1.5081 BPB vs 1.5395 baseline.
+
+--- a/training_loop (production)
++++ b/training_loop (H60 applied)
+@@ after standard schedule application
++    if mutation == 'H60_beta2_warmup':
++        beta2 = 0.8 + (0.95 - 0.8) * min(1.0, step / 500)
++        for group in optimizer.param_groups:
++            if group['kind'] == 'muon':
++                group['beta2'] = beta2
+
+## Production default: beta2 is fixed (typically 0.95 or from group config)
+## H60: Warms from 0.8 → 0.95 over 500 steps
+## Rationale: NorMuon variance reduction benefits from faster adaptation
+##   early (lower beta2 = shorter EMA window = quicker response to scale changes)

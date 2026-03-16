@@ -1,0 +1,19 @@
+{
+  "slot": "S2_P6",
+  "hypothesis": "H16",
+  "role": "exploit",
+  "title": "Cautious WD gated by trust threshold",
+  "code_mutation": "H16_trust_gated_wd",
+  "mechanism": "Only apply cautious WD where trust >= 0.8, preventing double-penalization of constrained neurons.",
+  "spec_mutation": null,
+  "valid": true,
+  "final_validation_bpb": 6.573889956047023,
+  "delta_vs_stage1_baseline": -0.001345592260350692,
+  "delta_vs_merged": 0.0003155881643337466,
+  "composite_score": 11.7883028534143,
+  "winner_vs_baseline": false,
+  "speed_ratio": 2.214990107693977,
+  "tokens_per_sec": 113107.39413477184,
+  "stability_penalty": 0.0,
+  "eval_time_s": 0.04925558308605105
+}

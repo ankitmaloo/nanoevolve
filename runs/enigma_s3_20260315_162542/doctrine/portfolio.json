@@ -1,0 +1,66 @@
+[
+  {
+    "slot_id": "S3_P1",
+    "role": "exploit",
+    "hypothesis_id": "H39",
+    "title": "Per-neuron trust (aspect-aware axis)",
+    "code_mutation": "H39_perneuron_trust",
+    "mechanism": "Trust ratio per output neuron: row-wise norm for tall, col-wise for wide. Shape (N,rows,1) or (N,1,cols)."
+  },
+  {
+    "slot_id": "S3_P2",
+    "role": "exploit",
+    "hypothesis_id": "H42",
+    "title": "Second moment bias correction",
+    "code_mutation": "H42_bias_correction",
+    "mechanism": "Apply 1/(1-beta2^step) correction to second moment buffer for first ~50 steps."
+  },
+  {
+    "slot_id": "S3_P3",
+    "role": "exploit",
+    "hypothesis_id": "H59",
+    "title": "Soft cautious WD with sigmoid",
+    "code_mutation": "H59_soft_wd",
+    "mechanism": "Replace binary (update*params)>=0 mask with sigmoid soft mask. Temperature=5.0."
+  },
+  {
+    "slot_id": "S3_P4",
+    "role": "scout",
+    "hypothesis_id": "H46",
+    "title": "Nesterov blend decoupled (0.8)",
+    "code_mutation": "H46_nesterov_decouple",
+    "mechanism": "Nesterov interpolation uses blend=0.8 while EMA keeps momentum=0.95."
+  },
+  {
+    "slot_id": "S3_P5",
+    "role": "scout",
+    "hypothesis_id": "H41",
+    "title": "Momentum warmup 0.85 to 0.95",
+    "code_mutation": "H41_momentum_warmup",
+    "mechanism": "Momentum beta linearly warms from 0.85 to 0.95 over first 200 steps."
+  },
+  {
+    "slot_id": "S3_P6",
+    "role": "scout",
+    "hypothesis_id": "H44",
+    "title": "Post-ortho scale preservation",
+    "code_mutation": "H44_scale_preserve",
+    "mechanism": "Renormalize after Polar Express to preserve pre-ortho Frobenius norm per matrix."
+  },
+  {
+    "slot_id": "S3_P7",
+    "role": "exploit",
+    "hypothesis_id": "H54",
+    "title": "Cautious WD on raw gradient alignment",
+    "code_mutation": "H54_raw_grad_wd",
+    "mechanism": "Use (raw_grads * params) >= 0 for cautious mask instead of (processed_update * params) >= 0."
+  },
+  {
+    "slot_id": "S3_P8",
+    "role": "wildcard",
+    "hypothesis_id": "H36",
+    "title": "Asymmetric trust \u2014 soft floor, hard ceiling",
+    "code_mutation": "H36_asymmetric_trust",
+    "mechanism": "Soft sigmoid floor at 0.5 when trust<1, hard linear clamp at 1.3 when trust>1."
+  }
+]

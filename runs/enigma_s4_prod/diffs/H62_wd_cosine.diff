@@ -1,0 +1,18 @@
+## H62: Weight Decay Cosine Schedule (5th PLACE: +0.002 BPB)
+##
+## Attack surface: Muon weight decay schedule (training loop)
+## Mechanism: Replace linear WD decay with cosine decay. Cosine holds WD
+##   higher longer in mid-training, then drops faster at end.
+## Result: Marginal improvement. 1.5374 BPB vs 1.5395 baseline.
+
+--- a/training_loop (production schedule)
++++ b/training_loop (H62 applied)
+@@ weight decay schedule
+-def get_weight_decay(it):
+-    return 0.2 * (1 - it / steps)
++def get_weight_decay(it):
++    progress = it / steps
++    return 0.2 * 0.5 * (1.0 + math.cos(math.pi * progress))
+
+## Production: linear decay 0.2 → 0.0
+## H62: cosine decay 0.2 → 0.0 (slower initial decay, faster final decay)

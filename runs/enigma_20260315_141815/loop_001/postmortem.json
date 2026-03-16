@@ -1,0 +1,40 @@
+{
+  "loop": 1,
+  "baseline_bpb": 6.5725443637866725,
+  "best": {
+    "slot": "P4",
+    "hypothesis": "H05",
+    "score": 36.64689056773571,
+    "delta_bpb": 0.0008917300447235377
+  },
+  "worst": {
+    "slot": "P1",
+    "hypothesis": "H01",
+    "score": 10.522667093060022,
+    "delta_bpb": -0.008565939891523655
+  },
+  "all_valid": true,
+  "ranking": [
+    {
+      "slot": "P4",
+      "score": 36.64689056773571
+    },
+    {
+      "slot": "P3",
+      "score": 11.642526693968982
+    },
+    {
+      "slot": "P5",
+      "score": 11.560240455141667
+    },
+    {
+      "slot": "P2",
+      "score": 11.401290224322139
+    },
+    {
+      "slot": "P1",
+      "score": 10.522667093060022
+    }
+  ],
+  "next_step": "Run on real NanoChat GPU with --stage real --host <server>"
+}

@@ -1,0 +1,102 @@
+{
+  "mutation": "H78_scalar_warmup",
+  "valid": true,
+  "failure_type": null,
+  "final_validation_bpb": 1.5506062225039352,
+  "best_validation_bpb": 1.5506062225039352,
+  "mean_step_time_ms": 27.807180655753474,
+  "total_time_s": 144.08718755698646,
+  "steps_completed": 5000,
+  "curve": [
+    {
+      "step": 0,
+      "val_bpb": 3.0134784160965746
+    },
+    {
+      "step": 250,
+      "val_bpb": 1.9686917156897727
+    },
+    {
+      "step": 500,
+      "val_bpb": 1.9182676895613118
+    },
+    {
+      "step": 750,
+      "val_bpb": 1.9038462520504997
+    },
+    {
+      "step": 1000,
+      "val_bpb": 1.8591973393537096
+    },
+    {
+      "step": 1250,
+      "val_bpb": 1.8586579869236641
+    },
+    {
+      "step": 1500,
+      "val_bpb": 1.8447155366941628
+    },
+    {
+      "step": 1750,
+      "val_bpb": 1.7541553336059135
+    },
+    {
+      "step": 2000,
+      "val_bpb": 1.7673291794921964
+    },
+    {
+      "step": 2250,
+      "val_bpb": 1.753008531431969
+    },
+    {
+      "step": 2500,
+      "val_bpb": 1.745133931692498
+    },
+    {
+      "step": 2750,
+      "val_bpb": 1.7354645200813141
+    },
+    {
+      "step": 3000,
+      "val_bpb": 1.6949253209712078
+    },
+    {
+      "step": 3250,
+      "val_bpb": 1.6866245025860622
+    },
+    {
+      "step": 3500,
+      "val_bpb": 1.6662308492590583
+    },
+    {
+      "step": 3750,
+      "val_bpb": 1.6442175108176826
+    },
+    {
+      "step": 4000,
+      "val_bpb": 1.6174419725752067
+    },
+    {
+      "step": 4250,
+      "val_bpb": 1.599033993511534
+    },
+    {
+      "step": 4500,
+      "val_bpb": 1.589950191669089
+    },
+    {
+      "step": 4750,
+      "val_bpb": 1.5642425061251337
+    },
+    {
+      "step": 5000,
+      "val_bpb": 1.5506062225039352
+    }
+  ],
+  "production_baseline": true,
+  "schedules": {
+    "lr": "linear_warmdown_50pct",
+    "momentum": "warmup_0.85_to_0.95_over_300",
+    "weight_decay": "linear_decay_to_0"
+  }
+}

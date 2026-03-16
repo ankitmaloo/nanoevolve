@@ -1,0 +1,28 @@
+## H81: Trust Ratio on Production Muon (LOST: -0.006 BPB)
+##
+## Attack surface: Muon fused kernel (nanochat/nanochat/optim.py)
+## Mechanism: Add layerwise trust ratio [0.5, 1.5] after variance reduction.
+##   Scales update by (param_norm / update_norm), clamped to [0.5, 1.5].
+##   This was the Stage 1-3 champion but LOSES on production.
+## Result: 1.5456 BPB vs 1.5395 baseline. Trust ratio was compensating for
+##   missing production schedules in the broken Stage 1-3 eval loop.
+
+--- a/nanochat/nanochat/optim.py
++++ b/nanochat/nanochat/optim.py
+@@ muon_step_fused — after variance reduction, before param update
+     g = g * final_scale.to(g.dtype)
+
++    # Trust ratio (layerwise) [0.5, 1.5]
++    param_norm = stacked_params.float().flatten(1).norm(dim=1).clamp_min(1e-8)
++    update_norm = g.float().flatten(1).norm(dim=1).clamp_min(1e-8)
++    trust = (param_norm / update_norm).clamp(0.5, 1.5)
++    g = g * trust.view(-1, *([1] * (g.ndim - 1))).to(g.dtype)
++
+     # Cautious weight decay + parameter update
+     lr = lr_t.to(g.dtype)
+     wd = wd_t.to(g.dtype)
+
+## Applied via monkey-patch in enigma/stage4_patch.py:
+##   Replaces entire muon_step_fused with muon_step_with_trust
+## NEGATIVE RESULT: Trust ratio hurts when production schedules are present.
+##   It was an artifact of the broken eval loop (Stages 1-3).

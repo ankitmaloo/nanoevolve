@@ -1,0 +1,23 @@
+{
+  "slot": "S2_P7",
+  "hypothesis": "H23",
+  "role": "wildcard",
+  "title": "Disable second_moment, rely on trust+clip",
+  "code_mutation": "none",
+  "mechanism": "Tests whether NorMuon variance reduction is essential when trust+clip are present.",
+  "spec_mutation": {
+    "second_moment": {
+      "mode": "none"
+    }
+  },
+  "valid": true,
+  "final_validation_bpb": 6.573444348998638,
+  "delta_vs_stage1_baseline": -0.0008999852119657703,
+  "delta_vs_merged": 0.0007611952127186683,
+  "composite_score": 12.46042446831613,
+  "winner_vs_baseline": false,
+  "speed_ratio": 2.371262672455187,
+  "tokens_per_sec": 121087.3767602021,
+  "stability_penalty": 0.0,
+  "eval_time_s": 0.04661091696470976
+}

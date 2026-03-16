@@ -1,0 +1,102 @@
+{
+  "mutation": "H64_nesterov_schedule",
+  "valid": true,
+  "failure_type": null,
+  "final_validation_bpb": 1.4765372354419992,
+  "best_validation_bpb": 1.4765372354419992,
+  "mean_step_time_ms": 27.40125662147766,
+  "total_time_s": 141.91345661898958,
+  "steps_completed": 5000,
+  "curve": [
+    {
+      "step": 0,
+      "val_bpb": 3.0134784160965746
+    },
+    {
+      "step": 250,
+      "val_bpb": 2.0113679767171164
+    },
+    {
+      "step": 500,
+      "val_bpb": 1.8950356533755879
+    },
+    {
+      "step": 750,
+      "val_bpb": 1.8748192972382394
+    },
+    {
+      "step": 1000,
+      "val_bpb": 1.8377191481297708
+    },
+    {
+      "step": 1250,
+      "val_bpb": 1.8572573798209935
+    },
+    {
+      "step": 1500,
+      "val_bpb": 1.8121951354203931
+    },
+    {
+      "step": 1750,
+      "val_bpb": 1.760222505835846
+    },
+    {
+      "step": 2000,
+      "val_bpb": 1.7847283144858872
+    },
+    {
+      "step": 2250,
+      "val_bpb": 1.7529332445610748
+    },
+    {
+      "step": 2500,
+      "val_bpb": 1.7762389397934573
+    },
+    {
+      "step": 2750,
+      "val_bpb": 1.7351787012759554
+    },
+    {
+      "step": 3000,
+      "val_bpb": 1.6998603414453157
+    },
+    {
+      "step": 3250,
+      "val_bpb": 1.6751392530401228
+    },
+    {
+      "step": 3500,
+      "val_bpb": 1.645564942328659
+    },
+    {
+      "step": 3750,
+      "val_bpb": 1.597625111635666
+    },
+    {
+      "step": 4000,
+      "val_bpb": 1.5724480967924996
+    },
+    {
+      "step": 4250,
+      "val_bpb": 1.5383373112405982
+    },
+    {
+      "step": 4500,
+      "val_bpb": 1.5313519104897964
+    },
+    {
+      "step": 4750,
+      "val_bpb": 1.5072225361942257
+    },
+    {
+      "step": 5000,
+      "val_bpb": 1.4765372354419992
+    }
+  ],
+  "production_baseline": true,
+  "schedules": {
+    "lr": "linear_warmdown_50pct",
+    "momentum": "warmup_0.85_to_0.95_over_300",
+    "weight_decay": "linear_decay_to_0"
+  }
+}

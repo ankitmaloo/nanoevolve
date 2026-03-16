@@ -1,0 +1,16 @@
+{
+  "generated": 15,
+  "kept": 9,
+  "killed": 3,
+  "demoted": 3,
+  "killed_ids": {
+    "H15": "Weak mechanism \u2014 per-matrix norm already handled by Polar Express",
+    "H21": "80% overlap with H14 (momentum warmup)",
+    "H24": "Diagnostic, not a BPB hypothesis (reveals ns_steps>5 is no-op)"
+  },
+  "demoted_ids": {
+    "H12": "torch.compile too complex for Stage 2, reserve for Stage 3",
+    "H17": "Adaptive per-group clip partially covered by stateful control",
+    "H22": "Compound change \u2014 run components first, then compound in Stage 3"
+  }
+}

@@ -1,0 +1,277 @@
+{
+  "title": "Enigma Stage 2 Postmortem — Evolutionary Optimizer Search",
+  "date": "2026-03-15",
+  "stage": 2,
+  "objective": "Test code-level and DSL mutations on top of Stage 1 merged winners, validated on real NanoChat GPT-2 training with ClimbMix-400B dataset",
+
+  "infrastructure": {
+    "hardware": "NVIDIA B200 GPU (183 GB VRAM)",
+    "cluster": "Slurm, priority partition, us-west-a2 nodes",
+    "model": "NanoChat GPT-2 (12 layers, 768 dim, 6 heads)",
+    "dataset": "karpathy/climbmix-400b-shuffle (3 shards)",
+    "framework": "PyTorch 2.9.1+cu128, Python 3.10"
+  },
+
+  "stage1_recap": {
+    "baseline_bpb_20steps": 2.269271,
+    "winners": [
+      {"id": "H08", "name": "Compound (trust+clip+stateful gate)", "delta": "+0.0159"},
+      {"id": "H02", "name": "Trust ratio (layerwise, clamp [0.5, 1.5])", "delta": "+0.0109"},
+      {"id": "H04", "name": "Stateful gate", "delta": "+0.0095"}
+    ],
+    "losers": [
+      {"id": "H05", "name": "ns_steps=3", "delta": "-0.0092"},
+      {"id": "H01", "name": "Post-orthogonal momentum", "delta": "-0.1311"}
+    ],
+    "merged_baseline": "P5 (trust+clip) + P3 (stateful gate) = enigma_stage2_merged"
+  },
+
+  "doctrine": {
+    "steps_completed": "11/11",
+    "surfaces_identified": 14,
+    "hypotheses_generated": 15,
+    "hypotheses_kept": 9,
+    "hypotheses_killed": {
+      "H15": "Weak mechanism — per-matrix norm already handled by Polar Express",
+      "H21": "80% overlap with H14 (momentum warmup)",
+      "H24": "Diagnostic, not a BPB hypothesis"
+    },
+    "hypotheses_demoted": {
+      "H12": "torch.compile too complex for Stage 2, reserve for Stage 3",
+      "H17": "Adaptive per-group clip partially covered by stateful control",
+      "H22": "Compound change — run components first"
+    },
+    "portfolio": {
+      "scouts": 3,
+      "exploits": 3,
+      "wildcards": 1,
+      "total": 7
+    }
+  },
+
+  "portfolio": [
+    {
+      "slot": "S2_P1", "role": "scout", "hypothesis": "H10",
+      "title": "bfloat16 Polar Express dtype (match production)",
+      "type": "code_mutation",
+      "mechanism": "Production Muon casts to bfloat16 for Polar Express; candidate uses float32"
+    },
+    {
+      "slot": "S2_P2", "role": "scout", "hypothesis": "H20",
+      "title": "Widen trust ratio clamp [0.1, 8.0]",
+      "type": "spec_mutation",
+      "mechanism": "Stage 1 trust won with tight [0.5, 1.5]. Test if wider range amplifies"
+    },
+    {
+      "slot": "S2_P3", "role": "scout", "hypothesis": "H18",
+      "title": "Simplified second moment (no norm-preserving rescale)",
+      "type": "code_mutation",
+      "mechanism": "Remove norm-preserving rescale from _apply_second_moment"
+    },
+    {
+      "slot": "S2_P4", "role": "exploit", "hypothesis": "H19",
+      "title": "Amplify gate step_fraction annealing",
+      "type": "spec_mutation",
+      "mechanism": "Push step_fraction from -1.0 to -2.0, bias +0.5, sharpness 1.5"
+    },
+    {
+      "slot": "S2_P5", "role": "exploit", "hypothesis": "H11",
+      "title": "Reorder: trust_ratio before second_moment",
+      "type": "code_mutation",
+      "mechanism": "Trust ratio should see raw orthogonalized norms, not second_moment-rescaled ones"
+    },
+    {
+      "slot": "S2_P6", "role": "exploit", "hypothesis": "H16",
+      "title": "Cautious WD gated by trust threshold",
+      "type": "code_mutation",
+      "mechanism": "Only apply cautious WD where trust >= 0.8"
+    },
+    {
+      "slot": "S2_P7", "role": "wildcard", "hypothesis": "H23",
+      "title": "Disable second_moment, rely on trust+clip",
+      "type": "spec_mutation",
+      "mechanism": "Tests whether NorMuon variance reduction is essential when trust+clip are present"
+    }
+  ],
+
+  "evaluation_phases": {
+
+    "phase1_toy_screening": {
+      "config": {"steps": 24, "eval_every": 6, "backend": "toy", "model": "fake"},
+      "purpose": "Crash detection and basic sanity check",
+      "baseline_bpb": 6.5725,
+      "merged_bpb": 6.5742,
+      "results": [
+        {"slot": "S2_P3", "hypothesis": "H18", "bpb": 6.3008, "delta_vs_merged": "+0.2734", "verdict": "WIN"},
+        {"slot": "S2_P7", "hypothesis": "H23", "bpb": 6.5734, "delta_vs_merged": "+0.0008", "verdict": "WIN"},
+        {"slot": "S2_P4", "hypothesis": "H19", "bpb": 6.5734, "delta_vs_merged": "+0.0008", "verdict": "WIN"},
+        {"slot": "S2_P5", "hypothesis": "H11", "bpb": 6.5741, "delta_vs_merged": "+0.0001", "verdict": "NEUTRAL"},
+        {"slot": "S2_P6", "hypothesis": "H16", "bpb": 6.5739, "delta_vs_merged": "+0.0003", "verdict": "NEUTRAL"},
+        {"slot": "S2_P2", "hypothesis": "H20", "bpb": 6.5742, "delta_vs_merged": "+0.0000", "verdict": "NEUTRAL"},
+        {"slot": "S2_P1", "hypothesis": "H10", "bpb": 6.5739, "delta_vs_merged": "+0.0003", "verdict": "NEUTRAL"}
+      ],
+      "reliability": "LOW — toy backend uses fake model with random data. H18 showed massive win (+0.27) that completely reversed on real training."
+    },
+
+    "phase2_real_shallow": {
+      "config": {"steps": 20, "eval_every": 10, "depth": 4, "batch_size": 1024, "seq_len": 512, "gpu": "B200"},
+      "purpose": "Real NanoChat validation at reduced depth",
+      "merged_bpb": 2.259584,
+      "results": [
+        {"slot": "S2_P3", "hypothesis": "H18", "bpb": 2.230716, "delta_vs_merged": "+0.028869", "verdict": "WIN"},
+        {"slot": "S2_P5", "hypothesis": "H11", "bpb": 2.259349, "delta_vs_merged": "+0.000235", "verdict": "NEUTRAL"},
+        {"slot": "S2_P2", "hypothesis": "H20", "bpb": 2.261054, "delta_vs_merged": "-0.001470", "verdict": "LOSE"},
+        {"slot": "S2_P1", "hypothesis": "H10", "bpb": 2.262664, "delta_vs_merged": "-0.003079", "verdict": "LOSE"},
+        {"slot": "S2_P6", "hypothesis": "H16", "bpb": 2.264338, "delta_vs_merged": "-0.004753", "verdict": "LOSE"},
+        {"slot": "S2_P4", "hypothesis": "H19", "bpb": 2.267377, "delta_vs_merged": "-0.007793", "verdict": "LOSE"},
+        {"slot": "S2_P7", "hypothesis": "H23", "bpb": 2.271091, "delta_vs_merged": "-0.011507", "verdict": "LOSE"}
+      ],
+      "reliability": "MEDIUM — real training but shallow depth (4 vs 12 layers). H18 won here but lost at full depth."
+    },
+
+    "phase3_gpt2_200steps": {
+      "config": {"steps": 200, "eval_every": 20, "depth": 12, "batch_size": 1024, "seq_len": 512, "gpu": "B200", "parallel": "14 GPUs via Slurm array"},
+      "purpose": "Full GPT-2 scale head-to-head of ALL 14 mutations (Stage 1 + Stage 2)",
+      "baseline_bpb": 1.925009,
+      "results_ranked": [
+        {"rank": 1,  "name": "S2_P7_H23",  "title": "Disable second_moment",          "bpb": 1.913555, "delta": "+0.011454", "ms_per_step": 69, "verdict": "WIN"},
+        {"rank": 2,  "name": "P2_H02",     "title": "Trust ratio",                    "bpb": 1.918974, "delta": "+0.006036", "ms_per_step": 70, "verdict": "WIN"},
+        {"rank": 3,  "name": "merged",     "title": "Merged P5+P3",                   "bpb": 1.920766, "delta": "+0.004243", "ms_per_step": 71, "verdict": "WIN"},
+        {"rank": 4,  "name": "P5_H08",     "title": "Compound (trust+clip+gate)",     "bpb": 1.920993, "delta": "+0.004016", "ms_per_step": 70, "verdict": "WIN"},
+        {"rank": 5,  "name": "S2_P5_H11",  "title": "Reorder trust before 2nd moment","bpb": 1.921957, "delta": "+0.003052", "ms_per_step": 70, "verdict": "WIN"},
+        {"rank": 6,  "name": "S2_P6_H16",  "title": "Trust-gated WD",                "bpb": 1.921968, "delta": "+0.003041", "ms_per_step": 70, "verdict": "WIN"},
+        {"rank": 7,  "name": "S2_P4_H19",  "title": "Amplified gate annealing",       "bpb": 1.922720, "delta": "+0.002290", "ms_per_step": 71, "verdict": "WIN"},
+        {"rank": 8,  "name": "S2_P1_H10",  "title": "bf16 Polar Express",             "bpb": 1.923747, "delta": "+0.001262", "ms_per_step": 47, "verdict": "WIN"},
+        {"rank": 9,  "name": "S2_P2_H20",  "title": "Wider trust clamp",              "bpb": 1.924320, "delta": "+0.000690", "ms_per_step": 74, "verdict": "NEUTRAL"},
+        {"rank": 10, "name": "baseline",   "title": "Original baseline",              "bpb": 1.925009, "delta": "+0.000000", "ms_per_step": 69, "verdict": "BASELINE"},
+        {"rank": 11, "name": "P3_H04",     "title": "Stateful gate (alone)",          "bpb": 1.926152, "delta": "-0.001143", "ms_per_step": 70, "verdict": "LOSE"},
+        {"rank": 12, "name": "P4_H05",     "title": "ns_steps=3",                     "bpb": 1.938343, "delta": "-0.013333", "ms_per_step": 57, "verdict": "LOSE"},
+        {"rank": 13, "name": "P1_H01",     "title": "Post-ortho momentum",            "bpb": 1.955901, "delta": "-0.030892", "ms_per_step": 69, "verdict": "LOSE"},
+        {"rank": 14, "name": "S2_P3_H18",  "title": "Simplified second moment",       "bpb": 1.974330, "delta": "-0.049321", "ms_per_step": 74, "verdict": "LOSE"}
+      ],
+      "winners": 8,
+      "neutral": 1,
+      "losers": 4,
+      "reliability": "HIGH — real NanoChat, full GPT-2 depth, 200 steps, all seeds identical"
+    },
+
+    "phase4_gpt2_1000steps": {
+      "config": {"steps": 1000, "eval_every": 50, "depth": 12, "batch_size": 1024, "seq_len": 512, "gpu": "B200", "parallel": "4 GPUs via Slurm array"},
+      "purpose": "Long-horizon confirmation of top 3 winners",
+      "baseline_bpb": 1.735676,
+      "results_ranked": [
+        {"rank": 1, "name": "P2_H02",  "title": "Trust ratio",             "bpb": 1.734028, "best_bpb": 1.734001, "delta": "+0.001648", "ms_per_step": 66.6, "total_time_s": 77.1, "verdict": "WIN"},
+        {"rank": 2, "name": "baseline","title": "Original baseline",       "bpb": 1.735676, "best_bpb": 1.735676, "delta": "+0.000000", "ms_per_step": 66.1, "total_time_s": 76.6, "verdict": "BASELINE"},
+        {"rank": 3, "name": "merged",  "title": "Merged P5+P3",           "bpb": 1.736418, "best_bpb": 1.736418, "delta": "-0.000742", "ms_per_step": 68.4, "total_time_s": 79.0, "verdict": "NEUTRAL"},
+        {"rank": 4, "name": "S2_P7_H23","title": "Disable second_moment", "bpb": 1.740923, "best_bpb": 1.740923, "delta": "-0.005247", "ms_per_step": 67.7, "total_time_s": 78.5, "verdict": "LOSE"}
+      ],
+      "validation_curve": {
+        "steps":    [50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000],
+        "baseline": [2.124, 2.127, 2.056, 2.004, 2.003, 1.971, 1.937, 1.919, 1.873, 1.860, 1.845, 1.819, 1.794, 1.790, 1.772, 1.749, 1.747, 1.740, 1.736, 1.736],
+        "H02_trust":[2.126, 2.123, 2.069, 2.014, 1.995, 1.969, 1.942, 1.906, 1.872, 1.845, 1.840, 1.822, 1.797, 1.792, 1.776, 1.750, 1.745, 1.737, 1.734, 1.734],
+        "merged":   [2.126, 2.117, 2.047, 2.008, 2.006, 1.969, 1.939, 1.921, 1.867, 1.854, 1.847, 1.822, 1.793, 1.788, 1.773, 1.748, 1.746, 1.740, 1.737, 1.736],
+        "H23_no2nd":[2.127, 2.112, 2.051, 2.015, 2.009, 1.982, 1.947, 1.930, 1.892, 1.877, 1.859, 1.823, 1.806, 1.804, 1.784, 1.759, 1.754, 1.746, 1.741, 1.741]
+      },
+      "reliability": "HIGHEST — real NanoChat, full GPT-2 depth, 1000 steps, definitive"
+    }
+  },
+
+  "final_verdict": {
+    "overall_winner": {
+      "hypothesis": "H02",
+      "title": "Trust ratio (layerwise, clamp [0.5, 1.5])",
+      "type": "spec_mutation (DSL only, no code change)",
+      "final_bpb": 1.734028,
+      "improvement_vs_baseline": "+0.001648 BPB",
+      "wallclock_overhead": "0.5 ms/step (negligible)",
+      "stability": "0 penalties across all runs",
+      "consistency": "Won at 20 steps (Stage 1), 200 steps (rank #2), and 1000 steps (rank #1)"
+    },
+    "ranking_evolution_across_horizons": {
+      "description": "Rankings shifted dramatically across training horizons, proving short-run screening is unreliable for final selection",
+      "H23_disable_second_moment": "Rank #1 at 200 steps -> Rank #4 (LOSE) at 1000 steps. Short-horizon illusion.",
+      "H18_simplified_second_moment": "Rank #1 on toy -> Rank #1 at depth=4 -> Rank #14 (WORST) at GPT-2. Complete reversal.",
+      "H02_trust_ratio": "Rank #2 at 200 steps -> Rank #1 at 1000 steps. Consistent and durable.",
+      "merged_P5_P3": "Added complexity (clip+gate) did not improve over trust ratio alone at long horizon."
+    }
+  },
+
+  "negative_knowledge": [
+    {
+      "id": "NK01",
+      "hypothesis": "H01",
+      "finding": "Post-orthogonal momentum placement is catastrophic (-0.031 BPB at GPT-2)",
+      "cause": "Orthogonalization is extremely sensitive to input quality; momentum-corrupted gradients break the Polar Express iteration",
+      "rule": "NEVER change momentum_placement from pre_orthogonal"
+    },
+    {
+      "id": "NK02",
+      "hypothesis": "H05",
+      "finding": "Reducing ns_steps from 5 to 3 consistently hurts (-0.013 BPB at GPT-2)",
+      "cause": "Orthogonalization quality directly impacts BPB; 5 Newton-Schulz iterations is the minimum for convergence",
+      "rule": "NEVER reduce ns_steps without compensating mechanism"
+    },
+    {
+      "id": "NK03",
+      "hypothesis": "H18",
+      "finding": "Removing norm-preserving rescale from second_moment is the WORST mutation at GPT-2 (-0.049 BPB)",
+      "cause": "The rescale prevents magnitude drift across layers; removing it causes hidden scale explosion at depth",
+      "rule": "NEVER remove norm-preserving rescale from _apply_second_moment",
+      "meta_lesson": "Toy backend gave +0.27 win, shallow real gave +0.029 win, GPT-2 gave -0.049 loss. Toy results are actively misleading."
+    },
+    {
+      "id": "NK04",
+      "hypothesis": "H23",
+      "finding": "Disabling second_moment won at 200 steps (+0.011) but lost at 1000 steps (-0.005)",
+      "cause": "Second moment provides long-horizon variance reduction that matters more as training progresses past initial convergence",
+      "rule": "Short-horizon winners must be confirmed at 1000+ steps before promotion"
+    },
+    {
+      "id": "NK05",
+      "hypothesis": "H10",
+      "finding": "bfloat16 Polar Express is fastest (47ms vs 69ms) with marginal BPB win (+0.001) at 200 steps",
+      "cause": "bf16 arithmetic is faster on B200 tensor cores, and the Polar Express coefficients are robust to reduced precision",
+      "rule": "H10 is a speed optimization, not a BPB optimization. Worth revisiting as a compound with H02."
+    },
+    {
+      "id": "NK06",
+      "hypothesis": "merged P5+P3",
+      "finding": "Merging trust+clip+stateful gate added complexity but did not beat trust ratio alone at 1000 steps",
+      "cause": "Clip and stateful gate introduce noise that slightly harms long-run convergence; trust ratio alone is the cleaner signal",
+      "rule": "Simpler is better. Do not compound mutations unless each component independently holds at long horizon."
+    },
+    {
+      "id": "NK07",
+      "hypothesis": "H04",
+      "finding": "Stateful gate alone LOST at GPT-2 200 steps (-0.001)",
+      "cause": "Gate adds overhead and noise without a complementary mechanism to direct it",
+      "rule": "Stateful gate only works in combination (as part of H08 compound), not standalone"
+    }
+  ],
+
+  "meta_lessons": [
+    "Toy backend is unreliable for ranking — use only for crash detection",
+    "Shallow depth (4 layers) does not predict full GPT-2 (12 layers) ranking",
+    "200-step rankings do not predict 1000-step rankings — always confirm at long horizon",
+    "The simplest winning mutation (H02: just add trust ratio) was the most durable",
+    "Code-level mutations were mostly inferior to DSL-level spec changes at this stage",
+    "Wildcard hypotheses (H23) provided the most interesting negative knowledge",
+    "8/14 mutations beat baseline at 200 steps, but only 1/3 survivors held at 1000 steps — attrition rate is high"
+  ],
+
+  "throughput": {
+    "all_mutations_within_noise": true,
+    "baseline_ms_per_step": 66.1,
+    "winner_H02_ms_per_step": 66.6,
+    "overhead": "0.5 ms/step (+0.8%)",
+    "fastest_mutation": {"name": "H10 bf16 Polar Express", "ms_per_step": 47, "speedup": "30% faster"}
+  },
+
+  "next_steps": [
+    "Promote H02 (trust ratio) as the new production baseline",
+    "Test H02 on multiple seeds (42, 137, 256) for robustness confirmation",
+    "Compound H02 + H10 (trust ratio + bf16 Polar Express) for BPB + speed win",
+    "Stage 3: Generate new hypotheses building on trust ratio as the base — explore trust schedule, per-head trust, trust-aware LR",
+    "Run 5000+ step evaluation to verify H02 holds into late training"
+  ]
+}

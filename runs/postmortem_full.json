@@ -1,0 +1,258 @@
+{
+  "title": "Enigma Evolutionary Optimizer Search \u2014 Full Postmortem",
+  "timestamp": "2026-03-15T15:02:26.438919",
+  "stages": [
+    {
+      "stage": 1,
+      "backend": "real",
+      "baseline_bpb": 2.269270681652172,
+      "baseline_valid": true,
+      "num_mutations": 5,
+      "num_winners": 3,
+      "num_losers": 2,
+      "mutations": [
+        {
+          "slot": "P5_H08_enigma_H08_compound",
+          "hypothesis": "H08",
+          "title": "enigma_H08_compound",
+          "bpb": 2.253388678846014,
+          "delta_bpb": 0.01588200280615837,
+          "valid": true,
+          "composite_score": 0,
+          "speed_ratio": 0,
+          "stability_penalty": 0.0,
+          "verdict": "WIN"
+        },
+        {
+          "slot": "P2_H02_enigma_H02_trust_ratio",
+          "hypothesis": "H02",
+          "title": "enigma_H02_trust_ratio",
+          "bpb": 2.2584154000853904,
+          "delta_bpb": 0.010855281566781727,
+          "valid": true,
+          "composite_score": 0,
+          "speed_ratio": 0,
+          "stability_penalty": 0.0,
+          "verdict": "WIN"
+        },
+        {
+          "slot": "P3_H04_enigma_H04_stateful_gate",
+          "hypothesis": "H04",
+          "title": "enigma_H04_stateful_gate",
+          "bpb": 2.2597845359195072,
+          "delta_bpb": 0.00948614573266493,
+          "valid": true,
+          "composite_score": 0,
+          "speed_ratio": 0,
+          "stability_penalty": 0.0,
+          "verdict": "WIN"
+        },
+        {
+          "slot": "P4_H05_enigma_H05_ns3",
+          "hypothesis": "H05",
+          "title": "enigma_H05_ns3",
+          "bpb": 2.278440079919003,
+          "delta_bpb": -0.009169398266831053,
+          "valid": true,
+          "composite_score": 0,
+          "speed_ratio": 0,
+          "stability_penalty": 0.0,
+          "verdict": "LOSE"
+        },
+        {
+          "slot": "P1_H01_enigma_H01_post_momentum",
+          "hypothesis": "H01",
+          "title": "enigma_H01_post_momentum",
+          "bpb": 2.4003437673587196,
+          "delta_bpb": -0.1310730857065474,
+          "valid": true,
+          "composite_score": 0,
+          "speed_ratio": 0,
+          "stability_penalty": 1.0,
+          "verdict": "LOSE"
+        }
+      ],
+      "hypothesis_verdicts": {
+        "H08": "WIN",
+        "H02": "WIN",
+        "H04": "WIN",
+        "H05": "LOSE",
+        "H01": "LOSE"
+      },
+      "negative_knowledge": [
+        {
+          "hypothesis": "H05",
+          "title": "enigma_H05_ns3",
+          "observed": "BPB regressed by 0.0092",
+          "likely_cause": "Mechanism didn't translate to BPB improvement",
+          "do_not_repeat_unless": "With a different variant or combined with stabilizing mutations"
+        },
+        {
+          "hypothesis": "H01",
+          "title": "enigma_H01_post_momentum",
+          "observed": "BPB regressed by 0.1311",
+          "likely_cause": "Gradient instability (spikes or NaN)",
+          "do_not_repeat_unless": "With gradient clipping or lower learning rate"
+        }
+      ],
+      "surfaces_explored": [],
+      "recommendations": [
+        "Merge top 3 winners into new baseline. Best:  (\u0394=+0.0159)",
+        "Kill hypothesis :  (\u0394=-0.1311)",
+        "Move to code-level mutations (Stage 2) for next improvements"
+      ]
+    },
+    {
+      "stage": 2,
+      "type": "code_mutations",
+      "merged_baseline_bpb": 2.259584313538535,
+      "num_mutations": 7,
+      "mutations": [
+        {
+          "slot": "S2_P1_H10",
+          "hypothesis": "H10_bf16_polar",
+          "title": "",
+          "code_mutation": "H10_bf16_polar",
+          "bpb": 2.2626637500361357,
+          "delta_vs_merged": -0.003079436497600785,
+          "delta_vs_stage1_baseline": 0,
+          "verdict": "LOSE"
+        },
+        {
+          "slot": "S2_P2_H20",
+          "hypothesis": "none",
+          "title": "",
+          "code_mutation": "none",
+          "bpb": 2.2610538318671773,
+          "delta_vs_merged": -0.001469518328642394,
+          "delta_vs_stage1_baseline": 0,
+          "verdict": "LOSE"
+        },
+        {
+          "slot": "S2_P3_H18",
+          "hypothesis": "H18_simple_second_moment",
+          "title": "",
+          "code_mutation": "H18_simple_second_moment",
+          "bpb": 2.2307158002852012,
+          "delta_vs_merged": 0.028868513253333727,
+          "delta_vs_stage1_baseline": 0,
+          "verdict": "WIN"
+        },
+        {
+          "slot": "S2_P4_H19",
+          "hypothesis": "none",
+          "title": "",
+          "code_mutation": "none",
+          "bpb": 2.2673769794581498,
+          "delta_vs_merged": -0.007792665919614805,
+          "delta_vs_stage1_baseline": 0,
+          "verdict": "LOSE"
+        },
+        {
+          "slot": "S2_P5_H11",
+          "hypothesis": "H11_trust_before_second",
+          "title": "",
+          "code_mutation": "H11_trust_before_second",
+          "bpb": 2.259349499892557,
+          "delta_vs_merged": 0.0002348136459779937,
+          "delta_vs_stage1_baseline": 0,
+          "verdict": "NEUTRAL"
+        },
+        {
+          "slot": "S2_P6_H16",
+          "hypothesis": "H16_trust_gated_wd",
+          "title": "",
+          "code_mutation": "H16_trust_gated_wd",
+          "bpb": 2.264337695958359,
+          "delta_vs_merged": -0.004753382419824259,
+          "delta_vs_stage1_baseline": 0,
+          "verdict": "LOSE"
+        },
+        {
+          "slot": "S2_P7_H23",
+          "hypothesis": "none",
+          "title": "",
+          "code_mutation": "none",
+          "bpb": 2.271091267407615,
+          "delta_vs_merged": -0.011506953869079961,
+          "delta_vs_stage1_baseline": 0,
+          "verdict": "LOSE"
+        }
+      ],
+      "code_changes_tested": [
+        {
+          "mutation": "H10_bf16_polar",
+          "mechanism": "",
+          "verdict": "LOSE",
+          "delta": -0.003079436497600785
+        },
+        {
+          "mutation": "none",
+          "mechanism": "",
+          "verdict": "LOSE",
+          "delta": -0.001469518328642394
+        },
+        {
+          "mutation": "H18_simple_second_moment",
+          "mechanism": "",
+          "verdict": "WIN",
+          "delta": 0.028868513253333727
+        },
+        {
+          "mutation": "none",
+          "mechanism": "",
+          "verdict": "LOSE",
+          "delta": -0.007792665919614805
+        },
+        {
+          "mutation": "H11_trust_before_second",
+          "mechanism": "",
+          "verdict": "NEUTRAL",
+          "delta": 0.0002348136459779937
+        },
+        {
+          "mutation": "H16_trust_gated_wd",
+          "mechanism": "",
+          "verdict": "LOSE",
+          "delta": -0.004753382419824259
+        },
+        {
+          "mutation": "none",
+          "mechanism": "",
+          "verdict": "LOSE",
+          "delta": -0.011506953869079961
+        }
+      ],
+      "recommendations": [
+        "Merge 1 code-level wins into the optimizer. Best:  (\u0394=+0.0289)",
+        "Run longer training (100+ steps) to confirm gains hold",
+        "Test multi-seed robustness (seeds 42, 137, 256)"
+      ]
+    }
+  ],
+  "cumulative_improvement": {
+    "stage1_baseline_bpb": 2.269270681652172,
+    "stage1_best_delta": 0.01588200280615837,
+    "stage2_best_delta_vs_original": 0
+  },
+  "doctrine_compliance": {
+    "variables_mapped": true,
+    "surfaces_mapped": true,
+    "hypotheses_generated": true,
+    "hypotheses_pruned": true,
+    "portfolio_selected": true,
+    "neighborhoods_registered": true,
+    "candidates_evaluated": true,
+    "real_backend_tested": true,
+    "negative_knowledge_recorded": true,
+    "code_mutations_tested": true,
+    "postmortem_generated": true
+  },
+  "next_steps": [
+    "Merge all winning mutations (DSL + code) into a production optimizer",
+    "Run 100+ step evaluation to confirm gains hold past short horizon",
+    "Test on multiple seeds for robustness (promotion to Level 3)",
+    "Profile memory and throughput for wallclock win (Level 5)",
+    "Begin Loop 3: next generation hypotheses based on postmortem"
+  ]
+}

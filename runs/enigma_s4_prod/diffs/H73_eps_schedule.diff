@@ -1,0 +1,54 @@
+## H73: AdamW Epsilon Schedule 1e-6 → 1e-10 (RUNNER-UP: +0.046 BPB)
+##
+## Attack surface: AdamW fused kernel (nanochat/nanochat/optim.py)
+## Mechanism: Replace fixed eps=1e-8 with log-linear schedule from 1e-6 to 1e-10.
+##   Early training: large eps (1e-6) stabilizes noisy early gradients.
+##   Late training: tiny eps (1e-10) allows sharper updates as second moment stabilizes.
+## Result: Second best Stage 4 mutation. 1.4936 BPB vs 1.5395 baseline.
+##   Novel dimension — eps scheduling is unexplored in the literature.
+
+--- a/nanochat/nanochat/optim.py
++++ b/nanochat/nanochat/optim.py
+@@ -20,6 +20,7 @@
+ @torch.compile(dynamic=False, fullgraph=True)
+ def adamw_step_fused(
+     p: Tensor,
+     grad: Tensor,
+     exp_avg: Tensor,
+     exp_avg_sq: Tensor,
+     step_t: Tensor,
+     lr_t: Tensor,
+     beta1_t: Tensor,
+     beta2_t: Tensor,
+     eps_t: Tensor,
+     wd_t: Tensor,
+ ) -> None:
+-    # Weight decay
+-    p.mul_(1 - lr_t * wd_t)
+-    # Update running averages
+-    exp_avg.lerp_(grad, 1 - beta1_t)
+-    exp_avg_sq.lerp_(grad.square(), 1 - beta2_t)
+-    # Bias corrections
+-    bias1 = 1 - beta1_t ** step_t
+-    bias2 = 1 - beta2_t ** step_t
+-    # Compute update and apply
+-    denom = (exp_avg_sq / bias2).sqrt() + eps_t
+-    step_size = lr_t / bias1
+-    p.add_(exp_avg / denom, alpha=-step_size)
++    # Log-linear eps from 1e-6 to 1e-10 over 5000 steps
++    log_ratio = -4.0  # log10(1e-10 / 1e-6)
++    frac = (step_t / 5000.0).clamp(max=1.0)
++    log_eps = -6.0 + log_ratio * frac  # -6 to -10
++    eps = 10.0 ** log_eps
++    # Standard AdamW with scheduled eps
++    p.mul_(1 - lr_t * wd_t)
++    exp_avg.lerp_(grad, 1 - beta1_t)
++    exp_avg_sq.lerp_(grad.square(), 1 - beta2_t)
++    bias1 = 1 - beta1_t ** step_t
++    bias2 = 1 - beta2_t ** step_t
++    denom = (exp_avg_sq / bias2).sqrt() + eps  # ← scheduled eps replaces eps_t
++    step_size = lr_t / bias1
++    p.add_(exp_avg / denom, alpha=-step_size)
+
+## Applied via monkey-patch in enigma/stage4_patch.py:
+##   optim_module.adamw_step_fused = adamw_step_eps_sched

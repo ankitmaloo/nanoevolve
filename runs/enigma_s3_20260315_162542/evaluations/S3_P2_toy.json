@@ -1,0 +1,11 @@
+{
+  "slot": "S3_P2",
+  "hypothesis": "H42",
+  "role": "exploit",
+  "title": "Second moment bias correction",
+  "code_mutation": "H42_bias_correction",
+  "valid": true,
+  "final_validation_bpb": 6.57587050825436,
+  "delta_vs_baseline": -3.439653024628342e-07,
+  "eval_time_s": 0.04804258397780359
+}

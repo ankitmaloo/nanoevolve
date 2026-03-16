@@ -1,0 +1,61 @@
+{
+  "loop": 2,
+  "stage": "code_mutations",
+  "doctrine_steps_completed": 11,
+  "stage1_baseline_bpb": 6.5725443637866725,
+  "merged_baseline_bpb": 6.574205544211357,
+  "best": {
+    "slot": "S2_P3",
+    "hypothesis": "H18",
+    "score": 115.24359698886768,
+    "delta_vs_merged": 0.2733901571522539,
+    "title": "Simplified second moment (no norm-preserving rescale)"
+  },
+  "worst": {
+    "slot": "S2_P1",
+    "hypothesis": "H10",
+    "score": 8.352472417831958,
+    "delta_vs_merged": 0.0002774080158420844,
+    "title": "bfloat16 Polar Express dtype (match production)"
+  },
+  "all_valid": true,
+  "ranking": [
+    {
+      "slot": "S2_P3",
+      "score": 115.24359698886768,
+      "delta_vs_merged": 0.2733901571522539
+    },
+    {
+      "slot": "S2_P7",
+      "score": 12.46042446831613,
+      "delta_vs_merged": 0.0007611952127186683
+    },
+    {
+      "slot": "S2_P4",
+      "score": 12.151523091537829,
+      "delta_vs_merged": 0.0008344598219869326
+    },
+    {
+      "slot": "S2_P2",
+      "score": 12.138977174132503,
+      "delta_vs_merged": 0.0
+    },
+    {
+      "slot": "S2_P5",
+      "score": 11.979370693189866,
+      "delta_vs_merged": 8.788313459096031e-05
+    },
+    {
+      "slot": "S2_P6",
+      "score": 11.7883028534143,
+      "delta_vs_merged": 0.0003155881643337466
+    },
+    {
+      "slot": "S2_P1",
+      "score": 8.352472417831958,
+      "delta_vs_merged": 0.0002774080158420844
+    }
+  ],
+  "negative_knowledge": [],
+  "next_step": "Run winners on real NanoChat GPU with --stage real"
+}

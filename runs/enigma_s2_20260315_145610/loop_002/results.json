@@ -1,0 +1,154 @@
+[
+  {
+    "slot": "S2_P1",
+    "hypothesis": "H10",
+    "role": "scout",
+    "title": "bfloat16 Polar Express dtype (match production)",
+    "code_mutation": "H10_bf16_polar",
+    "mechanism": "Production Muon casts to bfloat16 for Polar Express; candidate uses float32. Coefficients were tuned for bf16 arithmetic.",
+    "spec_mutation": null,
+    "valid": true,
+    "final_validation_bpb": 6.573928136195515,
+    "delta_vs_stage1_baseline": -0.0013837724088423542,
+    "delta_vs_merged": 0.0002774080158420844,
+    "composite_score": 8.352472417831958,
+    "winner_vs_baseline": false,
+    "speed_ratio": 1.5151499068763075,
+    "tokens_per_sec": 77370.39415888826,
+    "stability_penalty": 0.0,
+    "eval_time_s": 0.0681795000564307
+  },
+  {
+    "slot": "S2_P2",
+    "hypothesis": "H20",
+    "role": "scout",
+    "title": "Widen trust ratio clamp [0.1, 8.0]",
+    "code_mutation": "none",
+    "mechanism": "Stage 1 trust won with tight [0.5, 1.5]. Test if wider range amplifies the win.",
+    "spec_mutation": {
+      "trust_ratio": {
+        "clamp_min": 0.1,
+        "clamp_max": 8.0
+      }
+    },
+    "valid": true,
+    "final_validation_bpb": 6.574205544211357,
+    "delta_vs_stage1_baseline": -0.0016611804246844386,
+    "delta_vs_merged": 0.0,
+    "composite_score": 12.138977174132503,
+    "winner_vs_baseline": false,
+    "speed_ratio": 2.3204741386478207,
+    "tokens_per_sec": 118493.88494688759,
+    "stability_penalty": 0.0,
+    "eval_time_s": 0.047135458094999194
+  },
+  {
+    "slot": "S2_P3",
+    "hypothesis": "H18",
+    "role": "scout",
+    "title": "Simplified second moment (no norm-preserving rescale)",
+    "code_mutation": "H18_simple_second_moment",
+    "mechanism": "Remove norm-preserving rescale from _apply_second_moment. Let trust_ratio handle magnitude.",
+    "spec_mutation": null,
+    "valid": true,
+    "final_validation_bpb": 6.300815387059103,
+    "delta_vs_stage1_baseline": 0.27172897672756946,
+    "delta_vs_merged": 0.2733901571522539,
+    "composite_score": 115.24359698886768,
+    "winner_vs_baseline": true,
+    "speed_ratio": 2.390117748184204,
+    "tokens_per_sec": 122050.20204529703,
+    "stability_penalty": 0.0,
+    "eval_time_s": 0.04654391703661531
+  },
+  {
+    "slot": "S2_P4",
+    "hypothesis": "H19",
+    "role": "exploit",
+    "title": "Amplify gate step_fraction annealing",
+    "code_mutation": "none",
+    "mechanism": "Push step_fraction from -1.0 to -2.0, bias +0.5, sharpness 1.5. Stronger early-aggressive/late-conservative.",
+    "spec_mutation": {
+      "stateful_control": {
+        "gate": {
+          "coefficients": {
+            "step_fraction": -2.0
+          },
+          "bias": 0.5,
+          "sharpness": 1.5
+        }
+      }
+    },
+    "valid": true,
+    "final_validation_bpb": 6.57337108438937,
+    "delta_vs_stage1_baseline": -0.000826720602697506,
+    "delta_vs_merged": 0.0008344598219869326,
+    "composite_score": 12.151523091537829,
+    "winner_vs_baseline": false,
+    "speed_ratio": 2.286101149601009,
+    "tokens_per_sec": 116738.64495452681,
+    "stability_penalty": 0.0,
+    "eval_time_s": 0.04814600001554936
+  },
+  {
+    "slot": "S2_P5",
+    "hypothesis": "H11",
+    "role": "exploit",
+    "title": "Reorder: trust_ratio before second_moment",
+    "code_mutation": "H11_trust_before_second",
+    "mechanism": "Trust ratio should see raw orthogonalized norms, not second_moment-rescaled ones.",
+    "spec_mutation": null,
+    "valid": true,
+    "final_validation_bpb": 6.574117661076766,
+    "delta_vs_stage1_baseline": -0.0015732972900934783,
+    "delta_vs_merged": 8.788313459096031e-05,
+    "composite_score": 11.979370693189866,
+    "winner_vs_baseline": false,
+    "speed_ratio": 2.2775614599560887,
+    "tokens_per_sec": 116302.56985012726,
+    "stability_penalty": 0.0,
+    "eval_time_s": 0.04803700000047684
+  },
+  {
+    "slot": "S2_P6",
+    "hypothesis": "H16",
+    "role": "exploit",
+    "title": "Cautious WD gated by trust threshold",
+    "code_mutation": "H16_trust_gated_wd",
+    "mechanism": "Only apply cautious WD where trust >= 0.8, preventing double-penalization of constrained neurons.",
+    "spec_mutation": null,
+    "valid": true,
+    "final_validation_bpb": 6.573889956047023,
+    "delta_vs_stage1_baseline": -0.001345592260350692,
+    "delta_vs_merged": 0.0003155881643337466,
+    "composite_score": 11.7883028534143,
+    "winner_vs_baseline": false,
+    "speed_ratio": 2.214990107693977,
+    "tokens_per_sec": 113107.39413477184,
+    "stability_penalty": 0.0,
+    "eval_time_s": 0.04925558308605105
+  },
+  {
+    "slot": "S2_P7",
+    "hypothesis": "H23",
+    "role": "wildcard",
+    "title": "Disable second_moment, rely on trust+clip",
+    "code_mutation": "none",
+    "mechanism": "Tests whether NorMuon variance reduction is essential when trust+clip are present.",
+    "spec_mutation": {
+      "second_moment": {
+        "mode": "none"
+      }
+    },
+    "valid": true,
+    "final_validation_bpb": 6.573444348998638,
+    "delta_vs_stage1_baseline": -0.0008999852119657703,
+    "delta_vs_merged": 0.0007611952127186683,
+    "composite_score": 12.46042446831613,
+    "winner_vs_baseline": false,
+    "speed_ratio": 2.371262672455187,
+    "tokens_per_sec": 121087.3767602021,
+    "stability_penalty": 0.0,
+    "eval_time_s": 0.04661091696470976
+  }
+]

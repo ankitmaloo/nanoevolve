@@ -1,0 +1,18 @@
+diff --git a/adamopt/optim_search/candidate_optimizer.py b/adamopt/optim_search/candidate_optimizer.py
+index abc1234..def5678 100644
+--- a/adamopt/optim_search/candidate_optimizer.py
++++ b/adamopt/optim_search/candidate_optimizer.py
+@@ -264,7 +264,11 @@ class SpecCandidateOptimizer(torch.optim.Optimizer):
+         return max_grad_norm
+
+     def _apply_momentum(self, update: Tensor, momentum_buffer: Tensor) -> Tensor:
+-        momentum_buffer.lerp_(update, 1 - self.spec.momentum)
++        # H41: Momentum warmup — linearly warm beta from 0.85 to spec.momentum
++        # over first 200 steps. Reduces early-training noise amplification.
++        step = max(1, int(self._step_context.get("step", 1)))
++        beta = 0.85 + (self.spec.momentum - 0.85) * min(1.0, step / 200)
++        momentum_buffer.lerp_(update, 1 - beta)
+         if self.spec.nesterov:
+-            return update.lerp(momentum_buffer, self.spec.momentum)
++            return update.lerp(momentum_buffer, beta)
+         return momentum_buffer

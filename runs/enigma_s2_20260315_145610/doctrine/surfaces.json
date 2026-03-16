@@ -1,0 +1,35 @@
+{
+  "total": 14,
+  "top_by_leverage_x_plausibility": [
+    {
+      "id": "S11",
+      "score": 16,
+      "title": "torch.compile fusion",
+      "covered_by": "DEMOTED (H12)"
+    },
+    {
+      "id": "S01",
+      "score": 12,
+      "title": "bfloat16 Polar Express",
+      "covered_by": "H10"
+    },
+    {
+      "id": "S02",
+      "score": 12,
+      "title": "Reorder trust before second_moment",
+      "covered_by": "H11"
+    },
+    {
+      "id": "S12",
+      "score": 12,
+      "title": "Per-neuron trust ratio",
+      "covered_by": "H13 (kept, not in portfolio)"
+    },
+    {
+      "id": "S06",
+      "score": 12,
+      "title": "Momentum warmup",
+      "covered_by": "H14 (kept, not in portfolio)"
+    }
+  ]
+}

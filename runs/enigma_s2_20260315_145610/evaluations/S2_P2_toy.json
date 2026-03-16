@@ -1,0 +1,24 @@
+{
+  "slot": "S2_P2",
+  "hypothesis": "H20",
+  "role": "scout",
+  "title": "Widen trust ratio clamp [0.1, 8.0]",
+  "code_mutation": "none",
+  "mechanism": "Stage 1 trust won with tight [0.5, 1.5]. Test if wider range amplifies the win.",
+  "spec_mutation": {
+    "trust_ratio": {
+      "clamp_min": 0.1,
+      "clamp_max": 8.0
+    }
+  },
+  "valid": true,
+  "final_validation_bpb": 6.574205544211357,
+  "delta_vs_stage1_baseline": -0.0016611804246844386,
+  "delta_vs_merged": 0.0,
+  "composite_score": 12.138977174132503,
+  "winner_vs_baseline": false,
+  "speed_ratio": 2.3204741386478207,
+  "tokens_per_sec": 118493.88494688759,
+  "stability_penalty": 0.0,
+  "eval_time_s": 0.047135458094999194
+}

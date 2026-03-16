@@ -4,7 +4,7 @@ __pycache__
 
 .env
 
-*runs/
+*/*runs/
 
 *openai_examples/
 *gemini_examples/

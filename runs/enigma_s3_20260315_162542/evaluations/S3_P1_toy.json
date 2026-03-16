@@ -1,0 +1,11 @@
+{
+  "slot": "S3_P1",
+  "hypothesis": "H39",
+  "role": "exploit",
+  "title": "Per-neuron trust (aspect-aware axis)",
+  "code_mutation": "H39_perneuron_trust",
+  "valid": true,
+  "final_validation_bpb": 6.575969054313304,
+  "delta_vs_baseline": -9.889002424667837e-05,
+  "eval_time_s": 0.0484570839907974
+}

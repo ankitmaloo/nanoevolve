@@ -1,0 +1,18 @@
+## H70: Embedding Weight Decay 0.01 (LOST: -0.004 BPB)
+##
+## Attack surface: AdamW param groups (post-optimizer creation)
+## Mechanism: Add weight_decay=0.01 to embedding parameter groups.
+##   Production default: no WD on embeddings. Hypothesis: mild regularization helps.
+## Result: 1.5432 BPB vs 1.5395 baseline. Slight negative.
+
+--- a/training_loop (production)
++++ b/training_loop (H70 applied)
+@@ after optimizer creation
++if mutation == 'H70_embed_wd':
++    for group in optimizer.param_groups:
++        if group['kind'] == 'adamw':
++            if group['lr'] > 0.1:  # Embedding groups have higher LR
++                group['weight_decay'] = 0.01
+
+## No kernel-level patch needed — just modifies param group config.
+## NEGATIVE RESULT: Embedding regularization hurts at this scale.

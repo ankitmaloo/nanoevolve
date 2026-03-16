@@ -1,0 +1,63 @@
+{
+  "loop": 2,
+  "stage": "code_mutations",
+  "merged_baseline_bpb": 6.574205544211357,
+  "stage1_baseline_bpb": 6.5725443637866725,
+  "best": {
+    "slot": "S2_P4",
+    "hypothesis": "H13",
+    "role": "scout",
+    "title": "Warmup-aware momentum ramp",
+    "code_mutation": "H13_warmup_momentum",
+    "mechanism": "High momentum early = amplified noise. Ramp from 0.5\u21920.95 over first 20% of training.",
+    "valid": true,
+    "final_validation_bpb": 6.571300241290331,
+    "delta_vs_stage1_baseline": 0.0012441224963417596,
+    "delta_vs_merged": 0.0029053029210261982,
+    "composite_score": 27.175125576778058,
+    "winner_vs_baseline": false,
+    "speed_ratio": 2.092996056983003,
+    "tokens_per_sec": 116942.32411602966,
+    "eval_time_s": 0.04786795796826482
+  },
+  "worst": {
+    "slot": "S2_P2",
+    "hypothesis": "H11",
+    "role": "scout",
+    "title": "Gradient centralization before orthogonalization",
+    "code_mutation": "H11_grad_centralization",
+    "mechanism": "Remove DC component of gradients \u2014 reduces variance, helps orthogonalization",
+    "valid": true,
+    "final_validation_bpb": 6.57702072822333,
+    "delta_vs_stage1_baseline": -0.004476364436657221,
+    "delta_vs_merged": -0.0028151840119727822,
+    "composite_score": 10.691592973986594,
+    "winner_vs_baseline": false,
+    "speed_ratio": 2.093814998786833,
+    "tokens_per_sec": 116988.08099050446,
+    "eval_time_s": 0.047669374966062605
+  },
+  "ranking": [
+    {
+      "slot": "S2_P4",
+      "score": 27.175125576778058
+    },
+    {
+      "slot": "S2_P3",
+      "score": 11.224269262660949
+    },
+    {
+      "slot": "S2_P5",
+      "score": 11.190976345341241
+    },
+    {
+      "slot": "S2_P1",
+      "score": 11.150164770348429
+    },
+    {
+      "slot": "S2_P2",
+      "score": 10.691592973986594
+    }
+  ],
+  "next_step": "Run winners on real NanoChat with --stage real"
+}
