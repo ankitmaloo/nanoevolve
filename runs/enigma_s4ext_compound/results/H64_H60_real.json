@@ -1,0 +1,107 @@
+{
+  "mutation": "H64_H60",
+  "features": [
+    "H60",
+    "H64"
+  ],
+  "valid": true,
+  "failure_type": null,
+  "final_validation_bpb": 1.5264414430312414,
+  "best_validation_bpb": 1.5264414430312414,
+  "mean_step_time_ms": 27.6129656881385,
+  "total_time_s": 142.11252823498216,
+  "steps_completed": 5000,
+  "curve": [
+    {
+      "step": 0,
+      "val_bpb": 3.0134784160965746
+    },
+    {
+      "step": 250,
+      "val_bpb": 1.984538448970828
+    },
+    {
+      "step": 500,
+      "val_bpb": 1.8841929874466317
+    },
+    {
+      "step": 750,
+      "val_bpb": 1.8735529856350013
+    },
+    {
+      "step": 1000,
+      "val_bpb": 1.8375388665956836
+    },
+    {
+      "step": 1250,
+      "val_bpb": 1.8480946285031243
+    },
+    {
+      "step": 1500,
+      "val_bpb": 1.8075607198217836
+    },
+    {
+      "step": 1750,
+      "val_bpb": 1.7527383126088676
+    },
+    {
+      "step": 2000,
+      "val_bpb": 1.7873930627594818
+    },
+    {
+      "step": 2250,
+      "val_bpb": 1.764281349915169
+    },
+    {
+      "step": 2500,
+      "val_bpb": 1.7320947882617068
+    },
+    {
+      "step": 2750,
+      "val_bpb": 1.7078233863015848
+    },
+    {
+      "step": 3000,
+      "val_bpb": 1.6914233284324625
+    },
+    {
+      "step": 3250,
+      "val_bpb": 1.6842394687769429
+    },
+    {
+      "step": 3500,
+      "val_bpb": 1.659274884996516
+    },
+    {
+      "step": 3750,
+      "val_bpb": 1.6355174685387686
+    },
+    {
+      "step": 4000,
+      "val_bpb": 1.5929999203743912
+    },
+    {
+      "step": 4250,
+      "val_bpb": 1.5904362328554202
+    },
+    {
+      "step": 4500,
+      "val_bpb": 1.5805242754331394
+    },
+    {
+      "step": 4750,
+      "val_bpb": 1.5392191850202073
+    },
+    {
+      "step": 5000,
+      "val_bpb": 1.5264414430312414
+    }
+  ],
+  "production_baseline": true,
+  "baseline_schedules": {
+    "lr": "linear_warmdown_50pct",
+    "momentum": "warmup_0.85_to_0.95_over_300",
+    "weight_decay": "linear_decay_to_0"
+  },
+  "compound_testing": true
+}

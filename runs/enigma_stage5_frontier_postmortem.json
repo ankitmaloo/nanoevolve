@@ -1,0 +1,252 @@
+{
+  "title": "Enigma Stage 5 Frontier Postmortem — Singles Rerun, Composition Learning, and Corrected Frontier Carry",
+  "date": "2026-03-15",
+  "stage": 5,
+  "objective": "Correct the Stage 5 process by running a singles-first 20k batch, then use those results to probe composition, and finally run a corrected second act that explicitly carries the previous frontier composite into the new composition family.",
+
+  "infrastructure": {
+    "hardware": "NVIDIA B200 GPU (183 GB VRAM)",
+    "cluster": "Slurm, priority partition, us-west-a2 nodes",
+    "jobs": {
+      "singles_rerun": 2026,
+      "internal_composites": 2037,
+      "frontier_corrected_second_act": 2050
+    },
+    "model": "NanoChat GPT-2 (12 layers, 768 dim, 6 heads)",
+    "dataset": "karpathy/climbmix-400b-shuffle",
+    "batch_size": "1024 tokens (device_batch=2, seq_len=512)",
+    "step_time_ms": "~28",
+    "optimizer": "Production MuonAdamW with production schedules active and feature-specific monkey patches"
+  },
+
+  "process_correction": {
+    "what_was_wrong_before": "The earlier Stage 5 production loop mixed new singles and composites in one batch. That made attribution weak and skipped the intended population-first structure.",
+    "what_was_done_now": [
+      "Run a fresh singles-first 20k batch with 8 new single ideas, production baseline, prior single winner, and the accidental prior composite winner as a sentinel.",
+      "Run an internal composition batch to see which new-family components actually compound.",
+      "Run a corrected frontier batch that explicitly carries the previous frontier composite H64_H60_H73 into the new composition family."
+    ],
+    "important_note": "Cross-batch absolute BPB comparisons still show baseline drift, so the strongest conclusions are within-batch, then across batches only with caution."
+  },
+
+  "batch_1_singles_rerun_2026": {
+    "folder": "runs/enigma_s5_prod_singles_r1/",
+    "baseline_bpb": 1.436701,
+    "ranking": [
+      {"rank": 1, "id": "H538_seed_vsq", "bpb": 1.424759, "delta_vs_prod": "+0.011942", "verdict": "WIN"},
+      {"rank": 2, "id": "H533_shape_beta2", "bpb": 1.428695, "delta_vs_prod": "+0.008006", "verdict": "WIN"},
+      {"rank": 3, "id": "H532_muon_vreset", "bpb": 1.432977, "delta_vs_prod": "+0.003724", "verdict": "WIN"},
+      {"rank": 4, "id": "H535_embed_eps", "bpb": 1.436646, "delta_vs_prod": "+0.000055", "verdict": "FLAT_POSITIVE"},
+      {"rank": 5, "id": "none", "bpb": 1.436701, "delta_vs_prod": "0.000000", "verdict": "BASE"},
+      {"rank": 6, "id": "H64_H60_H73", "bpb": 1.443614, "delta_vs_prod": "-0.006913", "verdict": "LOSE"},
+      {"rank": 7, "id": "H73_solo", "bpb": 1.445190, "delta_vs_prod": "-0.008489", "verdict": "LOSE"},
+      {"rank": 8, "id": "H534_ns_stage", "bpb": 1.467325, "delta_vs_prod": "-0.030624", "verdict": "LOSE"},
+      {"rank": 9, "id": "H536_x0_beta1_late", "bpb": 1.474333, "delta_vs_prod": "-0.037632", "verdict": "LOSE"},
+      {"rank": 10, "id": "H531_raw_grad_wd", "bpb": 1.477003, "delta_vs_prod": "-0.040302", "verdict": "LOSE"},
+      {"rank": 11, "id": "H537_embed_mom_reset", "bpb": 1.487551, "delta_vs_prod": "-0.050850", "verdict": "LOSE"}
+    ],
+    "headline": "The real new winners were H538, H533, and H532. H535 was flat solo but stayed alive as a possible helper. The carried previous frontier family was not strong in this rerun."
+  },
+
+  "batch_2_internal_composites_2037": {
+    "folder": "runs/enigma_s5_prod_composites_r1/",
+    "baseline_bpb": 1.433856,
+    "ranking": [
+      {"rank": 1, "id": "H533_H535", "bpb": 1.399430, "delta_vs_prod": "+0.034426", "verdict": "BEST_NEW_FAMILY"},
+      {"rank": 2, "id": "H532_H533_H538", "bpb": 1.424737, "delta_vs_prod": "+0.009119", "verdict": "WIN"},
+      {"rank": 3, "id": "H532_H533_H535", "bpb": 1.428504, "delta_vs_prod": "+0.005352", "verdict": "WIN"},
+      {"rank": 4, "id": "H532_H535_H538", "bpb": 1.430346, "delta_vs_prod": "+0.003510", "verdict": "WIN"},
+      {"rank": 5, "id": "H533_H538", "bpb": 1.431279, "delta_vs_prod": "+0.002577", "verdict": "WIN"},
+      {"rank": 6, "id": "none", "bpb": 1.433856, "delta_vs_prod": "0.000000", "verdict": "BASE"},
+      {"rank": 7, "id": "H532_H533", "bpb": 1.439742, "delta_vs_prod": "-0.005886", "verdict": "LOSE"},
+      {"rank": 8, "id": "H533_shape_beta2", "bpb": 1.444962, "delta_vs_prod": "-0.011106", "verdict": "LOSE"},
+      {"rank": 9, "id": "H532_H533_H535_H538", "bpb": 1.463904, "delta_vs_prod": "-0.030048", "verdict": "LOSE"},
+      {"rank": 10, "id": "H533_H535_H538", "bpb": 1.472285, "delta_vs_prod": "-0.038429", "verdict": "LOSE"},
+      {"rank": 11, "id": "H532_H538", "bpb": 1.487537, "delta_vs_prod": "-0.053681", "verdict": "LOSE"}
+    ],
+    "headline": "The strongest new-family composition was H533+H535. Bigger stacks mostly failed. This was the first clear sign that H535 mattered conditionally and that H538 was not reliably additive."
+  },
+
+  "batch_3_corrected_frontier_2050": {
+    "folder": "runs/enigma_s5_prod_frontier_r1/",
+    "baseline_bpb": 1.423974,
+    "carried_parent_bpb": 1.407703,
+    "ranking": [
+      {"rank": 1, "id": "H60_H73_H533_H535", "bpb": 1.405599, "delta_vs_prod": "+0.018375", "delta_vs_parent": "+0.002104", "verdict": "BEST_CORRECTED"},
+      {"rank": 2, "id": "H64_H60_H73", "bpb": 1.407703, "delta_vs_prod": "+0.016271", "delta_vs_parent": "0.000000", "verdict": "CARRIED_PARENT"},
+      {"rank": 3, "id": "H64_H73_H533_H535", "bpb": 1.411100, "delta_vs_prod": "+0.012875", "delta_vs_parent": "-0.003396", "verdict": "WIN"},
+      {"rank": 4, "id": "H533_shape_beta2", "bpb": 1.414361, "delta_vs_prod": "+0.009614", "delta_vs_parent": "-0.006657", "verdict": "WIN"},
+      {"rank": 5, "id": "H64_H60_H73_H533_H535", "bpb": 1.416359, "delta_vs_prod": "+0.007615", "delta_vs_parent": "-0.008656", "verdict": "WIN"},
+      {"rank": 6, "id": "H533_H535", "bpb": 1.422631, "delta_vs_prod": "+0.001343", "delta_vs_parent": "-0.014928", "verdict": "MARGINAL"},
+      {"rank": 7, "id": "none", "bpb": 1.423974, "delta_vs_prod": "0.000000", "delta_vs_parent": "-0.016271", "verdict": "BASE"},
+      {"rank": 8, "id": "H64_H60_H73_H533", "bpb": 1.424255, "delta_vs_prod": "-0.000281", "delta_vs_parent": "-0.016552", "verdict": "LOSE"},
+      {"rank": 9, "id": "H64_H60_H73_H538", "bpb": 1.426536, "delta_vs_prod": "-0.002562", "delta_vs_parent": "-0.018833", "verdict": "LOSE"},
+      {"rank": 10, "id": "H64_H60_H533_H535", "bpb": 1.437358, "delta_vs_prod": "-0.013384", "delta_vs_parent": "-0.029655", "verdict": "LOSE"},
+      {"rank": 11, "id": "H538_seed_vsq", "bpb": 1.438727, "delta_vs_prod": "-0.014752", "delta_vs_parent": "-0.031023", "verdict": "LOSE"},
+      {"rank": 12, "id": "H64_H60_H73_H535", "bpb": 1.442925, "delta_vs_prod": "-0.018950", "delta_vs_parent": "-0.035221", "verdict": "LOSE"}
+    ],
+    "headline": "The corrected second act says the best frontier-aware composition is H60+H73+H533+H535. It beats the carried H64_H60_H73 parent in-batch, but only by a small margin."
+  },
+
+  "corrected_loo_attribution": {
+    "full_stack": {"id": "H64_H60_H73_H533_H535", "bpb": 1.416359},
+    "leave_one_out_set": [
+      {
+        "removed": "H64",
+        "run": "H60_H73_H533_H535",
+        "bpb": 1.405599,
+        "delta_vs_full": "+0.010760",
+        "interpretation": "H64 is harmful inside the new H60/H73/H533/H535 family."
+      },
+      {
+        "removed": "H60",
+        "run": "H64_H73_H533_H535",
+        "bpb": 1.411100,
+        "delta_vs_full": "+0.005260",
+        "interpretation": "H60 still helps, but its contribution is smaller than H73/H533/H535."
+      },
+      {
+        "removed": "H73",
+        "run": "H64_H60_H533_H535",
+        "bpb": 1.437358,
+        "delta_vs_full": "-0.020999",
+        "interpretation": "H73 is strongly helpful in this family."
+      },
+      {
+        "removed": "H533",
+        "run": "H64_H60_H73_H535",
+        "bpb": 1.442925,
+        "delta_vs_full": "-0.026566",
+        "interpretation": "H533 is strongly helpful in this family."
+      },
+      {
+        "removed": "H535",
+        "run": "H64_H60_H73_H533",
+        "bpb": 1.424255,
+        "delta_vs_full": "-0.007896",
+        "interpretation": "H535 is also genuinely additive here, despite being weak or flat alone."
+      }
+    ],
+    "bottom_line": "The new best family is H60+H73+H533+H535. H64 does not belong in that stack."
+  },
+
+  "reasoning": {
+    "R1_h535_is_a_real_conditional_helper": {
+      "observation": "H535 was only +0.000055 vs baseline as a single in the singles rerun, but H533+H535 became the best result of the internal composite batch at 1.399430 and removing H535 from the corrected full stack made the result much worse (1.424255).",
+      "mechanistic_explanation": "H535 is not a strong standalone improvement. Its value appears when H533 has already changed the Muon path, suggesting that the embedding/value-embed epsilon schedule helps the AdamW path track or regularize a Muon-side change rather than helping independently."
+    },
+    "R2_h64_and_h533_do_not_add_cleanly": {
+      "observation": "The corrected full stack with H64 scored 1.416359, while removing H64 improved it to 1.405599.",
+      "mechanistic_explanation": "H64 was useful in the old frontier family, but once H533+H535 are present, the old H64 effect appears to over-shape the Muon path. The new family wants H60 and H73 preserved, but not H64."
+    },
+    "R3_h538_is_not_robust_yet": {
+      "observation": "H538 won the singles rerun at 1.424759, but lost badly in the corrected frontier batch as a single (1.438727) and also failed to improve the carried frontier parent (H64_H60_H73_H538 = 1.426536).",
+      "mechanistic_explanation": "H538 is either unstable across batches or highly context-dependent. Seeding embedding second moments from the first gradient may help in some runs, but it is not a robust frontier component yet."
+    },
+    "R4_the_new_best_corrected_run_is_small_margin_and_validation_led": {
+      "observation": "H60_H73_H533_H535 beats H64_H60_H73 by only +0.002104 in the corrected batch. Late train_bpb at 19.5k is actually slightly worse for the new best run (6.6605) than for the carried parent (6.6032).",
+      "mechanistic_explanation": "The gain is real within the batch, but it does not look like a large optimization-quality jump. It is more consistent with a small validation-side or regularization-side improvement than a dramatic train-loss improvement."
+    },
+    "R5_h60_h73_remains_the_stable_core": {
+      "observation": "The best corrected run keeps H60 and H73. Removing H60 hurts modestly; removing H73 hurts strongly.",
+      "mechanistic_explanation": "The old H60/H73 backbone still looks structurally correct. The new value added in Stage 5 is the H533/H535 family, not a replacement of H60/H73."
+    },
+    "R6_cross_batch_absolute_bpbs_still_shift": {
+      "observation": "The internal composite batch baseline was 1.433856, while the corrected frontier batch baseline was 1.423974. The earlier mixed Stage 5 production batch baseline was 1.425995.",
+      "mechanistic_explanation": "This is too much movement to ignore. It means cross-batch raw BPBs are informative but not decisive by themselves. Strongest conclusions should be made from within-batch deltas and repeated structures."
+    }
+  },
+
+  "negative_knowledge": {
+    "NK28": {
+      "finding": "Do not evaluate a new composition family without carrying the previous frontier parent",
+      "evidence": "The internal composite batch found H533_H535 = 1.399430, but it did not answer whether the new family beat the previous frontier until the corrected batch was run.",
+      "do_not_repeat": "Every second-act composition batch must include the previous frontier comparator directly."
+    },
+    "NK29": {
+      "finding": "H538 should not be promoted yet",
+      "evidence": "It won one singles rerun, but lost in the corrected frontier batch both alone and as a frontier extension.",
+      "do_not_repeat": "Do not treat H538 as a stable frontier component until it reproduces in another singles-first batch."
+    },
+    "NK30": {
+      "finding": "Large stacks are still unreliable by default",
+      "evidence": "The internal 4-way stack H532_H533_H535_H538 lost badly, and the corrected full stack with H64 also underperformed its H64-removed LOO.",
+      "do_not_repeat": "Assume additivity is false until LOO proves otherwise."
+    }
+  },
+
+  "meta_lessons": [
+    {
+      "id": "ML22",
+      "lesson": "A weak single can still be a strong compositional helper",
+      "evidence": "H535 was flat solo but materially improved both H533_H535 and the corrected frontier family."
+    },
+    {
+      "id": "ML23",
+      "lesson": "The previous frontier must be part of the second act, not just a historical note",
+      "evidence": "Without the corrected frontier batch, the internal composite batch would have overstated how complete the new-family picture was."
+    },
+    {
+      "id": "ML24",
+      "lesson": "LOO should be done on one chosen full composite, not on arbitrary permutations",
+      "evidence": "The corrected batch cleanly identified H64 as harmful and H73/H533/H535 as helpful by using one full stack and its exact one-component removals."
+    },
+    {
+      "id": "ML25",
+      "lesson": "Within-batch deltas are more trustworthy than raw cross-batch BPBs when baseline drift exists",
+      "evidence": "The same families moved materially across the singles rerun, internal composite batch, and corrected frontier batch."
+    }
+  ],
+
+  "paths_promising": [
+    {
+      "priority": 1,
+      "path": "Promote H60+H73+H533+H535 as the new compositional family to replicate",
+      "reason": "It was the best run in the corrected frontier batch and its LOO structure is coherent."
+    },
+    {
+      "priority": 2,
+      "path": "Replicate H533_H535 and H60+H73+H533+H535 in the same batch",
+      "reason": "H533_H535 had the strongest raw new-family result, while H60+H73+H533+H535 beat the carried frontier parent. These need same-batch confirmation."
+    },
+    {
+      "priority": 3,
+      "path": "Demote H64 within the new H533/H535 family",
+      "reason": "The corrected LOO says H64 hurts that stack."
+    },
+    {
+      "priority": 4,
+      "path": "Retest H538 only after a cleaner reproduction pass",
+      "reason": "Its behavior is inconsistent across batches."
+    },
+    {
+      "priority": 5,
+      "path": "Investigate why H535 becomes powerful only in composition",
+      "reason": "This is the most interesting new mechanistic clue from Stage 5."
+    }
+  ],
+
+  "final_recommendation": {
+    "current_best_within_corrected_frontier_batch": {
+      "id": "H60_H73_H533_H535",
+      "title": "H60 + H73 + H533 + H535",
+      "reason": "Best corrected frontier-aware run and beats the carried H64_H60_H73 parent in-batch"
+    },
+    "current_best_raw_new_family_result": {
+      "id": "H533_H535",
+      "title": "H533 + H535",
+      "reason": "Best raw score found in the internal new-family composite batch"
+    },
+    "do_not_promote_yet": [
+      "H538 as a frontier component",
+      "Any stack that keeps H64 inside the H533/H535 family by default"
+    ]
+  },
+
+  "artifacts": {
+    "singles_rerun": "runs/enigma_s5_prod_singles_r1/",
+    "internal_composites": "runs/enigma_s5_prod_composites_r1/",
+    "corrected_frontier": "runs/enigma_s5_prod_frontier_r1/",
+    "prior_stage5_postmortem": "runs/enigma_stage5_postmortem.json"
+  }
+}

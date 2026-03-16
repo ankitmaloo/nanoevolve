@@ -1,409 +1,286 @@
 # NanoEvolve Checkpoint
 
-## Current State (2026-03-13)
+## Current State (2026-03-16)
 
-Real NanoChat GPU evaluation is now working end-to-end on Modal A100.
+**Project Enigma** — evolutionary optimizer mutation search against production NanoChat GPT-2 training — has completed 4 stages and found 4 zero-overhead optimizer improvements that beat production.
 
-### What Was Done
+The best single mutation (H64: Nesterov blend schedule) improves validation BPB by +0.063 over production baseline at 5000 steps, with accelerating gains in the endgame. Compounding and longer-horizon testing are the natural next step.
 
-1. **Fixed `token_bytes` device mismatch** in [`adamopt/optim_search/real_eval.py`](./adamopt/optim_search/real_eval.py)
-   - `get_token_bytes()` → `get_token_bytes(device=device)` (line 173)
-   - Without this, `evaluate_bpb` crashed because `token_bytes` (CPU) was indexed by `y` (CUDA)
+---
 
-2. **Built single-spec validation pipeline**: [`scripts/modal_validate_spec.py`](./scripts/modal_validate_spec.py)
-   - Phase 1: Local syntax & constraint validation (no GPU needed, catches bad specs instantly)
-   - Phase 2: 20-step real NanoChat training on A100 (candidate + baseline, same container)
-   - Phase 3: Telemetry report (loss curves, gate ranges, step times, NaN/Inf checks)
-   - Phase 4: Verdict — VALID or REJECTED with reasons
-   - Usage: `uv run scripts/modal_validate_spec.py --spec candidate.json`
-   - Or pipe from LLM: `echo '...' | uv run scripts/modal_validate_spec.py --spec -`
-   - Or built-in: `uv run scripts/modal_validate_spec.py --builtin stateful_annealing`
+## Enigma: What It Is
 
-3. **Built batch evolution script**: [`scripts/modal_evolve.py`](./scripts/modal_evolve.py)
-   - Mutates a parent spec N times, runs all on GPU in parallel, scores and ranks
-   - Not the primary workflow — the validation script is the main gate
+Enigma is a systematic hypothesis-test loop for discovering optimizer improvements to the production NanoChat MuonAdamW optimizer. It works by:
 
-### Verified on GPU
+1. Generating mutation hypotheses (manually or via LLM subagents)
+2. Implementing each as a minimal code patch to the production optimizer
+3. Running all mutations + baseline in parallel on the Slurm cluster (B200 GPUs)
+4. Scoring by validation BPB delta vs unpatched production baseline
+5. Documenting results, negative knowledge, and meta-lessons in postmortems
 
-- `modal_test_real_eval.py`: 3/3 tests passed (baseline, telemetry, stateful)
-- `modal_validate_spec.py`: stateful_annealing variant validated — ✅ VALID, 0.034 BPB worse than baseline, 1.9x slower, no NaN/Inf, loss decreasing
+### Cluster Access
 
-### The Intended Workflow
+- **Slurm cluster**: `user54@35.84.33.219` (login node)
+- **Shared filesystem**: `/mnt/sharefs/user54/nanoe/`
+- **Repo on cluster**: `$HOME/nanoe` (rsync'd from local)
+- **GPU**: NVIDIA B200 (183 GB VRAM)
+- **Partition**: `priority`
+- **Critical env var**: `export TORCHDYNAMO_DISABLE=1` (triton compilation fails on this cluster, must disable torch.compile)
 
-The workflow for testing a single mutation idea:
+### How to Deploy and Run
 
-1. LLM (or human) suggests a mutation → produces a `MatrixOptimizerSpec` JSON
-2. `modal_validate_spec.py` validates it:
-   - Catches invalid specs locally (no GPU cost)
-   - Runs 20 steps on A100 alongside baseline
-   - Reports telemetry and verdict
-3. If VALID → enters the real evaluation queue (tournament)
-4. If REJECTED → feedback goes back to the LLM for a better mutation
+```bash
+# From local machine — sync repo to cluster
+rsync -avz --exclude='.git' --exclude='__pycache__' --exclude='.venv' \
+  /Users/ankit/Documents/dev/RL/nanoe/nanoevolve/ \
+  user54@35.84.33.219:~/nanoe/
 
-### What Is Still Missing
+# On the cluster — submit job
+ssh user54@35.84.33.219
+cd ~/nanoe/runs/enigma_s4_prod
+sbatch slurm_s4.sh
 
-- Wiring `modal_validate_spec.py` into the tournament loop (`search_optimizer.py tournament --backend real`)
-- An LLM-in-the-loop mutation generator that produces spec JSONs
-- Multi-seed promotion on real GPU (currently toy-backend only)
-
-### AlphaEvolve Generic Task System (also done this session)
-
-4. **Made alphaevolve a generic evolution engine** — any folder with a `task.json` can be evolved
-   - Created [`alphaevolve/mvp/task_config.py`](./alphaevolve/mvp/task_config.py) — `TaskConfig` reads `task.json`
-   - Created [`alphaevolve/mvp/generic_evaluator.py`](./alphaevolve/mvp/generic_evaluator.py) — `GenericEvaluator` runs external eval commands
-   - Refactored [`alphaevolve/mvp/controller.py`](./alphaevolve/mvp/controller.py) — accepts `task_dir`, loads config, context files, metric keys from `task.json`
-   - Added `--task-dir` to CLI: `python mvp/cli.py run --task-dir /path/to/kernel/folder --mode gemini`
-   - Existing A* and BinPack tasks work unchanged (backward compatible)
-   - All tests pass: 12/12 (8 existing + 4 new generic evaluator tests)
-
-**How it works now:**
-
-Any folder can be evolved by creating a `task.json`:
-```json
-{
-    "name": "optimize_softmax_kernel",
-    "description": "Evolve the softmax CUDA kernel for better throughput.",
-    "seed_file": "softmax.cu",
-    "mutable_files": ["softmax.cu"],
-    "context_files": ["softmax.h", "bench.py"],
-    "eval_command": "bash eval.sh {candidate_file}",
-    "eval_mode": "command",
-    "metric_keys": ["throughput_gbps", "correctness"],
-    "primary_metric": "throughput_gbps"
-}
+# Monitor
+squeue -u user54
+# Results appear in runs/enigma_s4_prod/results/<mutation>_real.json
 ```
 
-Then run: `python mvp/cli.py run --task-dir /path/to/kernel --mode gemini`
-
-The `eval_command` must print JSON to stdout: `{"valid": true, "aggregate_score": 124.5, "metrics": {...}}`
-
-
-This file captures the current project state for the composite repo rooted at:
-
-- [`nanoevolve`](./)
-
-Current subdirectories:
-
-- [`adamopt`](./adamopt)
-- [`nanochat`](./nanochat)
-- [`alphaevolve`](./alphaevolve)
-
-## Project Shape
-
-The intended project model is:
-
-- `adamopt/` = optimizer-search control plane
-- `nanochat/` = real training substrate
-- `alphaevolve/` = prior evolutionary code / reference material
-
-This is documented in:
-
-- [`README.md`](./README.md)
-- [`workspace.toml`](./workspace.toml)
-
-## Core Strategic Decision
-
-The project is intentionally staged.
-
-The current intended progression is:
-
-1. bounded DSL optimizer evolution
-2. real NanoChat short-run evaluation
-3. long-run promotion for a very small number of winners
-4. only then code-level optimizer mutation
-
-The strategy and win criteria are documented in:
-
-- [`adamopt/EVOLUTION_STRATEGY.md`](./adamopt/EVOLUTION_STRATEGY.md)
-- [`adamopt/WIN_HIERARCHY.md`](./adamopt/WIN_HIERARCHY.md)
-
-## What Is Implemented
-
-### 1. Bounded Optimizer DSL
-
-Implemented in:
-
-- [`adamopt/optim_search/spec.py`](./adamopt/optim_search/spec.py)
-
-This now supports:
-
-- baseline Muon-like matrix optimizer config
-- trust ratio config
-- clipping config
-- decay config
-- second-moment config
-- update multiplier
-- bounded stateful control
-
-The stateful DSL extension now includes training-state-conditioned behavior through:
-
-- `loss_ema`
-- `loss_improvement_ema`
-- `grad_norm_ema`
-- `update_ratio_ema`
-- `grad_alignment_ema`
-- `step_fraction`
-
-These are combined through a smooth gate and bounded actuator ranges rather than arbitrary code generation.
-
-### 2. Spec-Driven Candidate Optimizer Runtime
-
-Implemented in:
-
-- [`adamopt/optim_search/candidate_optimizer.py`](./adamopt/optim_search/candidate_optimizer.py)
-
-What it does:
-
-- preserves the NanoChat-style split between matrix params and non-matrix params
-- applies the bounded DSL to matrix updates only
-- keeps non-matrix params on AdamW-like behavior
-- tracks update statistics
-- now tracks stateful training proxies and applies gated aggressive vs conservative behavior
-
-### 3. Mutation System
-
-Implemented in:
-
-- [`adamopt/optim_search/mutations.py`](./adamopt/optim_search/mutations.py)
-
-Current mutation coverage includes:
-
-- momentum placement
-- trust ratio on/off and clamp range
-- clip policy
-- decay mode
-- update multiplier
-- Newton-Schulz step count
-- second-moment beta
-- stateful control on/off
-- gate bias
-- gate sensor weights
-- stateful EMA beta
-- actuator range adjustments
-
-### 4. Evaluation Harness
-
-Implemented in:
-
-- [`adamopt/optim_search/eval_candidate.py`](./adamopt/optim_search/eval_candidate.py)
-
-Current status:
-
-- uses a deterministic toy backend
-- supports fixed seed and fixed batch order
-- reports structured metrics
-- feeds loss/step context into the stateful optimizer DSL
-
-Returned metrics include:
-
-- final validation bpb
-- best validation bpb
-- train/validation AUC
-- step time
-- tokens/sec
-- NaN/Inf failures
-- grad norm spikes
-- update/parameter norm ratios
-- memory overhead
-- stability penalty
-
-### 5. Scoring And Win Hierarchy
-
-Implemented in:
-
-- [`adamopt/optim_search/score.py`](./adamopt/optim_search/score.py)
-- [`adamopt/optim_search/tournament.py`](./adamopt/optim_search/tournament.py)
-
-Current scoring logic now explicitly models:
-
-- sample efficiency
-- wall-clock / time-to-target
-- stability
-- throughput-adjusted efficiency
-- seed robustness
-
-The win hierarchy is persisted into candidate records and promotion records through structured `win_assessment` payloads.
-
-### 6. Tournament / Search Archive
-
-Implemented in:
-
-- [`adamopt/optim_search/tournament.py`](./adamopt/optim_search/tournament.py)
-- [`adamopt/optim_search/archive.py`](./adamopt/optim_search/archive.py)
-- [`adamopt/scripts/search_optimizer.py`](./adamopt/scripts/search_optimizer.py)
-
-Current behavior:
-
-- baseline candidate creation
-- generation mutation
-- short-run evaluation
-- Pareto filtering
-- multi-seed promotion reruns
-- archive persistence
-- summary generation
-
-### 7. Code Mutation / Validation / Deployment Infrastructure
-
-Implemented but not intended as the default early-stage search path:
-
-- [`adamopt/optim_search/command_mutator.py`](./adamopt/optim_search/command_mutator.py)
-- [`adamopt/optim_search/validation.py`](./adamopt/optim_search/validation.py)
-- [`adamopt/optim_search/deployment.py`](./adamopt/optim_search/deployment.py)
-- [`adamopt/optim_search/autonomous.py`](./adamopt/optim_search/autonomous.py)
-
-What exists:
-
-- patch tracking for real NanoChat workspaces
-- local validation against real NanoChat
-- detached remote deployment and trace capture
-- autonomous async patch/validate/deploy/poll loop
-
-Important:
-
-- this infrastructure exists
-- it is not the intended default search path until the evaluator is strong enough
-
-### 8. Real NanoChat Integration
-
-Current NanoChat integration points are:
-
-- [`nanochat/nanochat/gpt.py`](./nanochat/nanochat/gpt.py)
-- [`nanochat/nanochat/optim.py`](./nanochat/nanochat/optim.py)
-
-The identified low-touch patch points are:
-
-- `setup_optimizer`
-- `adamw_step_fused`
-- `muon_step_fused`
-
-Tests for patching and validation now use the real local NanoChat clone, not a fake NanoChat package.
-
-## What Is Working
-
-### Test Status
-
-Latest verified test result:
-
-- `../.venv/bin/python -m pytest adamopt/tests -q`
-- result: `18 passed`
-
-This was run from:
-
-- [`nanoevolve`](./)
-
-### Verified Properties
-
-Currently verified:
-
-- spec mutations work
-- stateful DSL spec round-trip works
-- candidate optimizer instantiation works
-- stateful annealing variant runs
-- same-seed deterministic learning behavior works on the toy evaluator
-- win hierarchy scoring works
-- real NanoChat patching works
-- real NanoChat validation works
-- autonomous patch/validate/deploy/poll loop works
-
-## Where We Are
-
-The project is at this checkpoint:
-
-- the bounded DSL is now expressive enough to represent phase-aware optimizer behavior
-- the runtime can execute that behavior
-- the scorer understands the win hierarchy
-- the control plane for code mutation and remote execution exists
-
-But:
-
-- the main evaluator is still the toy backend
-- the default search loop is not yet running real NanoChat short-horizon evaluation
-- the scaling and tuning-robustness axes are modeled in policy but not yet fully measured in evaluation
-
-So the project is beyond scaffold-only status, but not yet at real end-to-end NanoChat optimizer discovery.
-
-## What Is Pending
-
-### Highest Priority
-
-1. Replace the toy evaluator with a real NanoChat short-run evaluator
-   Files likely affected:
-   - [`adamopt/optim_search/eval_candidate.py`](./adamopt/optim_search/eval_candidate.py)
-   - [`adamopt/scripts/search_optimizer.py`](./adamopt/scripts/search_optimizer.py)
-
-2. Make spec-only search the default automated path
-   Meaning:
-   - DSL mutation first
-   - real NanoChat short-run evaluation second
-   - long-run promotion third
-   - code-level mutation only after that
-
-3. Add longer-horizon evaluation strong enough to reward annealing-like behavior
-   Reason:
-   - very short horizons will over-favor aggressive early movers
-   - stateful phase-aware behavior matters most later in training
-
-### Next Evaluation Gaps
-
-Still missing:
-
-- real time-to-target measurement on NanoChat
-- real large-scale promotion runs
-- real scaling checks
-- real tuning-sensitivity / robustness checks
-
-### Search-Policy Gaps
-
-Still needed:
-
-- explicit child-count / generation-budget automation beyond current toy tournament defaults
-- tighter control over how many children are spawned per stage and promoted per stage in the real evaluator path
-- a clean real-run scheduler for remote providers
-
-### Remote Execution Gaps
-
-The project has detached remote execution, but the provider abstraction for ephemeral managed backends is still pending.
-
-That means:
-
-- remote worker leasing / replacement is not yet implemented as a provider-agnostic scheduler
-- infra-failure recovery and mutator-based repair loops are still design intent, not completed implementation
-
-## Current Constraints / Caveats
-
-1. The best current search loop still uses the toy backend.
-2. The stateful DSL is implemented, but it has not yet been selected by real NanoChat training dynamics.
-3. The code-mutation path exists, but it should remain secondary until the spec evaluator is trusted.
-4. The current virtualenv is still one level above the composite repo root:
-   - `.venv` (at or above the repo root)
-
-## Recommended Next Step
-
-The next correct step is:
-
-- build the real NanoChat short-run evaluator for spec-only candidates
-
-That is the most important missing piece because it unlocks:
-
-- real selection pressure for the bounded DSL
-- real measurement of annealing-like behavior
-- trustworthy promotion into longer training runs
-
-## Summary
-
-At this checkpoint, the project has:
-
-- a composite repo layout
-- strategy and win-criteria documentation
-- a bounded DSL for optimizer evolution
-- a stateful annealing-capable DSL extension
-- a spec-driven runtime
-- mutation logic
-- scoring and winner logic
-- archive and tournament machinery
-- real NanoChat patch/validation infrastructure
-- autonomous deployment machinery
-
-The main thing still missing is:
-
-- replacing the toy evaluator with a real NanoChat short-run evaluator so the system can discover real optimizer winners instead of only toy-harness winners
+---
+
+## Enigma Stage History
+
+### Stage 1-2: DSL-Based Search (Toy + Real GPU)
+- **Eval method**: `SpecCandidateOptimizer` with cosine LR only, no production schedules
+- **Best finding**: H02 trust ratio [0.5, 1.5] — consistent winner
+- **Hardware**: Slurm B200 GPUs, 1000 steps
+- **Key files**: `enigma/run_stage2.py`, `runs/enigma_s2_*/`, `runs/enigma_stage2_postmortem.json`
+
+### Stage 3: Code Mutations (Real GPU, 1k + 5k steps)
+- **Eval method**: `SpecCandidateOptimizer` with cosine LR, no production schedules
+- **Best finding**: H41 momentum warmup 0.85→0.95/200 steps (+0.032 BPB at 5k)
+- **Key lesson**: Compounding hurts — H41 solo > H41+H39+H46 compound
+- **Key files**: `enigma/run_stage3.py`, `runs/enigma_s3_*/`, `runs/enigma_stage3_postmortem.json`
+- **Diff**: `runs/enigma_s3_compound/H41_momentum_warmup.diff`
+
+### Stage 4: Production-Patched (Current Best Results)
+- **Eval method**: Production MuonAdamW with ALL production schedules (momentum warmup, WD decay, LR warmdown). Mutations applied as monkey-patches.
+- **Critical discovery**: Stages 1-3 eval loop was BROKEN — missing production schedules systematically biased results. Trust ratio (H02) was compensating for missing schedules and actually HURTS on production.
+- **Key files**: `enigma/stage4_patch.py`, `runs/enigma_s4_prod/slurm_s4.sh`, `runs/enigma_s4_prod/results/`, `runs/enigma_s4_prod/diffs/`, `runs/enigma_stage4_postmortem.json`
+
+---
+
+## Stage 4 Results (5000 steps, production baseline)
+
+| Rank | ID | Mutation | BPB | Δ vs Prod | Verdict |
+|------|----|----------|-----|-----------|---------|
+| 1 | H64 | Nesterov blend schedule 0.7→0.95/500 steps | 1.4765 | **+0.063** | WIN |
+| 2 | H73 | AdamW eps schedule 1e-6→1e-10 log-linear | 1.4936 | **+0.046** | WIN |
+| 3 | H60 | Muon beta2 warmup 0.8→0.95/500 steps | 1.5081 | **+0.031** | WIN |
+| 4 | H71 | AdamW beta1 warmup 0.7→0.8/300 steps | 1.5193 | **+0.020** | WIN |
+| 5 | H62 | WD cosine decay | 1.5374 | +0.002 | marginal |
+| 6 | — | Production baseline (unpatched) | 1.5395 | — | BASE |
+| 7 | H70 | Embedding weight_decay=0.01 | 1.5432 | -0.004 | LOSE |
+| 8 | H81 | Trust ratio [0.5, 1.5] on Muon | 1.5456 | -0.006 | LOSE |
+| 9 | H63 | Momentum overshoot 0.85→0.97→0.95 | 1.5472 | -0.008 | LOSE |
+| 10 | H78 | Scalar LR warmup 200 steps | 1.5506 | -0.011 | LOSE |
+
+### What the Top 4 Winners Do
+
+**H64 — Nesterov Blend Schedule** (Muon path, training loop change)
+- Production warms momentum 0.85→0.95/300 steps. This is used as both the momentum beta AND the Nesterov interpolation coefficient.
+- H64 replaces the Nesterov blend with a separate schedule: 0.7→0.95 over 500 steps.
+- Lower initial blend (0.7) gives more weight to raw gradient vs momentum buffer when buffer is uninitialized.
+- Starts slower than baseline but crosses over at ~step 3500 and accelerates dramatically.
+- Code: 4 lines in training loop. See `runs/enigma_s4_prod/diffs/H64_nesterov_schedule.diff`
+
+**H73 — AdamW Epsilon Schedule** (AdamW path, kernel-level monkey-patch)
+- Production uses fixed eps (typically 1e-8). H73 schedules eps log-linearly from 1e-6 to 1e-10.
+- Large eps early caps per-coordinate step sizes when variance estimates are noisy.
+- Small eps late restores full adaptivity as second moment stabilizes.
+- Especially important because production uses warmup_ratio=0.0 (no LR warmup).
+- Code: Replace `adamw_step_fused` via monkey-patch. See `runs/enigma_s4_prod/diffs/H73_eps_schedule.diff`
+
+**H60 — Beta2 Warmup** (Muon path, training loop change)
+- NorMuon's second moment beta2 is fixed. H60 warms it from 0.8→0.95 over 500 steps.
+- Lower beta2 early = shorter EMA window = faster response to changing gradient variance.
+- Code: 3 lines in training loop. See `runs/enigma_s4_prod/diffs/H60_beta2_warmup.diff`
+
+**H71 — AdamW Beta1 Warmup** (AdamW path, kernel-level monkey-patch)
+- Production warms Muon momentum but leaves AdamW beta1 fixed. H71 applies the same idea.
+- Warms beta1 from (beta1-0.1) to beta1 over 300 steps.
+- Code: Replace `adamw_step_fused` via monkey-patch. See `runs/enigma_s4_prod/diffs/H71_beta1_warmup.diff`
+
+---
+
+## Accumulated Knowledge
+
+### Positive Knowledge (What Works)
+- **PK05**: Nesterov blend decoupling is the highest-leverage optimizer change (+0.063)
+- **PK06**: Epsilon scheduling is a completely novel dimension with large payoff (+0.046)
+- **PK07**: Warmup schedules work on every fixed constant — momentum, beta1, beta2, eps
+- **PK08**: Simple monotonic schedules beat clever non-monotonic ones (H64 linear > H63 overshoot)
+- **PK09**: The 4 winners touch 4 independent parameters — high compound potential
+
+### Negative Knowledge (What Doesn't Work)
+- **NK17**: Trust ratio LOSES on production (-0.006) — was an artifact of broken eval loop
+- **NK18**: Embedding weight decay LOSES (-0.004) — model uses softcap which already regularizes
+- **NK19**: Momentum overshoot LOSES (-0.008) — 0.97 peak causes excess smoothing
+- **NK20**: Scalar LR warmup is WORST (-0.011) — scalars need immediate adaptation from step 0
+- **NK21**: ALL Stage 1-3 results are unreliable for production decisions — eval loop gap
+
+### Meta-Lessons
+- **ML08**: Eval loop fidelity is EVERYTHING — production-faithful eval reveals different winners
+- **ML09**: Nesterov blend decoupling is the highest-leverage change discovered
+- **ML10**: AdamW path has massive untapped potential (ignored in 100% of prior evolution)
+- **ML11**: Warmup schedules are the dominant mutation pattern
+- **ML12**: Simple monotonic schedules beat clever non-monotonic ones
+- **ML13**: Mutations that work on broken baselines may be harmful on correct baselines
+
+---
+
+## Key Code Files
+
+### Enigma Infrastructure
+| File | Purpose |
+|------|---------|
+| `enigma/stage4_patch.py` | Monkey-patch module for production optimizer. Reads `ENIGMA_MUTATION` env var, patches `muon_step_fused` or `adamw_step_fused` |
+| `enigma/stage4_context.md` | Shared context doc used to generate Stage 4 hypotheses |
+| `enigma/run_stage3.py` | Stage 3 optimizer with code mutations (SpecCandidateOptimizer-based, SUPERSEDED by Stage 4) |
+| `enigma/run_stage2.py` | Stage 2 optimizer (SpecCandidateOptimizer-based, SUPERSEDED) |
+
+### Production NanoChat (READ ONLY — do not modify without explicit user approval)
+| File | Key Functions |
+|------|---------------|
+| `nanochat/nanochat/optim.py` | `adamw_step_fused` (L20-49), `muon_step_fused` (L90-147), `MuonAdamW` class (L152-291) |
+| `nanochat/scripts/base_train.py` | `get_lr_multiplier` (L362-371), `get_muon_momentum` (L374-377), `get_weight_decay` (L380-381) |
+| `nanochat/nanochat/gpt.py` | `GPT.setup_optimizer` (L356-394) — creates param groups |
+
+### Run Artifacts
+| Path | Contents |
+|------|----------|
+| `runs/enigma_s4_prod/slurm_s4.sh` | Stage 4 slurm script (10 mutations, inline Python training loop) |
+| `runs/enigma_s4_prod/results/*.json` | Raw results with learning curves for all 10 runs |
+| `runs/enigma_s4_prod/diffs/*.diff` | Annotated diffs for all 9 mutations |
+| `runs/enigma_stage4_postmortem.json` | Full Stage 4 analysis, curves, mutation analysis, knowledge |
+| `runs/enigma_stage3_postmortem.json` | Stage 3 analysis |
+| `runs/enigma_stage2_postmortem.json` | Stage 2 analysis |
+
+### adamopt Infrastructure (DSL-based search — not used in Stage 4)
+| File | Purpose |
+|------|---------|
+| `adamopt/optim_search/spec.py` | Bounded optimizer DSL |
+| `adamopt/optim_search/candidate_optimizer.py` | Spec-driven optimizer runtime |
+| `adamopt/optim_search/mutations.py` | 13 composable DSL mutation operators |
+| `adamopt/optim_search/eval_candidate.py` | Evaluation harness (toy backend) |
+| `adamopt/optim_search/tournament.py` | Generation loop, promotion |
+
+---
+
+## What Is Pending / Next Steps
+
+### Immediate: Stage 5 — Compound Testing
+
+**Priority 1: Test H64+H73 compound** (highest confidence)
+- H64 modifies Muon momentum/Nesterov blend (training loop)
+- H73 modifies AdamW epsilon (kernel-level patch)
+- Independent paths (Muon vs AdamW), different parameter types
+- Expected: additive, ~+0.10 BPB combined
+- Implementation: combine the Stage 4 patches — use H64's training loop schedule AND H73's monkey-patched adamw_step_fused
+
+**Priority 2: Test H64+H60 compound**
+- Both Muon schedule changes but different parameters (momentum blend vs beta2)
+- Moderate risk of interaction
+
+**Priority 3: Test all 4 winners (H64+H73+H60+H71)**
+- All 4 touch different optimizer parameters
+- Low interaction risk but compounding lesson from Stage 3 warrants caution
+- If this works, it's the full production deployment candidate
+
+**Priority 4: Test at 10k+ steps**
+- H64's learning curve shows accelerating advantage in endgame
+- 10k steps would confirm the trend continues (or if it plateaus)
+- Can be combined with compound testing
+
+### How to Implement Stage 5
+
+1. **Create `runs/enigma_s5_compound/slurm_s5.sh`** based on Stage 4's slurm script
+2. Mutation array should include:
+   - `none` (baseline)
+   - `H64_solo` (control — should reproduce Stage 4)
+   - `H73_solo` (control — should reproduce Stage 4)
+   - `H64_H73` (compound: Nesterov blend + eps schedule)
+   - `H64_H60` (compound: Nesterov blend + beta2 warmup)
+   - `H64_H73_H60_H71` (all 4 winners)
+3. For compound mutations:
+   - H64 is a training loop schedule override (set `group['momentum']` per step)
+   - H73 is a kernel monkey-patch (`stage4_patch.py` replaces `adamw_step_fused`)
+   - H60 is a training loop schedule override (set `group['beta2']` per step)
+   - H71 is a kernel monkey-patch (replaces `adamw_step_fused` — **CONFLICTS with H73**)
+   - H73 and H71 both replace `adamw_step_fused` — need a COMBINED kernel that does BOTH eps schedule AND beta1 warmup
+4. Steps: 5000 minimum, consider 10000 for the best compound
+5. `--array=0-5` (6 runs)
+
+### Kernel Conflict Resolution for H73+H71
+
+Both H73 and H71 monkey-patch `adamw_step_fused`. To compound them, you need a single replacement kernel:
+
+```python
+@torch.compile(dynamic=False, fullgraph=True)
+def adamw_step_combined(p, grad, exp_avg, exp_avg_sq, step_t, lr_t,
+                        beta1_t, beta2_t, eps_t, wd_t):
+    # H71: beta1 warmup
+    warmup = 300.0
+    frac_b1 = (step_t / warmup).clamp(max=1.0)
+    effective_beta1 = (beta1_t - 0.1) + 0.1 * frac_b1
+    # H73: eps schedule
+    log_ratio = -4.0
+    frac_eps = (step_t / 5000.0).clamp(max=1.0)
+    log_eps = -6.0 + log_ratio * frac_eps
+    eps = 10.0 ** log_eps
+    # Standard AdamW with both modifications
+    p.mul_(1 - lr_t * wd_t)
+    exp_avg.lerp_(grad, 1 - effective_beta1)
+    exp_avg_sq.lerp_(grad.square(), 1 - beta2_t)
+    bias1 = 1 - effective_beta1 ** step_t
+    bias2 = 1 - beta2_t ** step_t
+    denom = (exp_avg_sq / bias2).sqrt() + eps
+    step_size = lr_t / bias1
+    p.add_(exp_avg / denom, alpha=-step_size)
+```
+
+### Longer-Term: Production Deployment
+
+If compound testing succeeds:
+1. The Muon changes (H64, H60) are training loop schedule additions — add `get_nesterov_blend(it)` and `get_beta2(it)` functions to `base_train.py`
+2. The AdamW changes (H73, H71) require modifying `adamw_step_fused` in `optim.py` — either directly or via a new schedule parameter
+3. All changes are zero-overhead (no extra computation, only different hyperparameter values)
+4. Consider making Nesterov blend a first-class tunable in MuonAdamW param groups
+
+### Do NOT Do
+- Do NOT deploy trust ratio (H02/H81) to production — it's harmful with correct schedules
+- Do NOT use SpecCandidateOptimizer for production decisions — eval loop gap makes results unreliable
+- Do NOT compound mutations that modify the same function without a combined kernel
+
+---
+
+## Repository Structure
+
+```
+nanoevolve/
+  adamopt/       # Optimizer search control plane (DSL, mutations, scoring, tournament)
+  nanochat/      # Real GPT training substrate (model, optimizer, training loop)
+  alphaevolve/   # Prior evolutionary code and reference material
+  enigma/        # Enigma mutation search (patches, runners, context docs)
+  runs/          # All experiment artifacts (slurm scripts, results, postmortems, diffs)
+```
+
+## Development
+
+```bash
+source .venv/bin/activate
+pip install -e adamopt/
+pip install -e nanochat/
+python -m pytest adamopt/tests -q  # Expected: 18 passed
+```
+
+Python 3.10+. PyTorch >= 2.0.

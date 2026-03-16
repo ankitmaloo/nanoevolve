@@ -1,0 +1,135 @@
+=== ENIGMA Stage 5 Frontier Composition — H64_H60_H73_H538 ===
+Host: us-west-a2-gpu-001
+GPU: NVIDIA B200, 183359 MiB
+Steps: 20000, Depth: 12
+[ENIGMA] Patched MuonAdamW._step_muon with faithful H64 Nesterov blend schedule
+[ENIGMA] Patched MuonAdamW._step_adamw with H538 seeded first-gradient second moment
+[ENIGMA] Patched adamw_step_fused with H73 eps schedule
+=== ENIGMA Stage 5 Production — H64_H60_H73_H538 ===
+Steps: 20000, Depth: 12, Eval every: 250
+Features: ['H538', 'H60', 'H64', 'H73']
+Scaling the LR for the AdamW parameters ∝1/√(768/768) = 1.000000
+  step     0: val_bpb=3.013478
+  step     0: train_bpb=15.3235 (455ms)
+  step   250: val_bpb=1.957707
+  step   500: val_bpb=1.865769
+  step   500: train_bpb=9.2366 (28ms)
+  step   750: val_bpb=1.858348
+  step  1000: val_bpb=1.832393
+  step  1000: train_bpb=9.5521 (28ms)
+  step  1250: val_bpb=1.806860
+  step  1500: val_bpb=1.784580
+  step  1500: train_bpb=8.9361 (28ms)
+  step  1750: val_bpb=1.749349
+  step  2000: val_bpb=1.787820
+  step  2000: train_bpb=9.2221 (28ms)
+  step  2250: val_bpb=1.756966
+  step  2500: val_bpb=1.757775
+  step  2500: train_bpb=8.7175 (28ms)
+  step  2750: val_bpb=1.726671
+  step  3000: val_bpb=1.705339
+  step  3000: train_bpb=8.5178 (28ms)
+  step  3250: val_bpb=1.722984
+  step  3500: val_bpb=1.701038
+  step  3500: train_bpb=8.6479 (28ms)
+  step  3750: val_bpb=1.694564
+  step  4000: val_bpb=1.652989
+  step  4000: train_bpb=8.1305 (28ms)
+  step  4250: val_bpb=1.672442
+  step  4500: val_bpb=1.686962
+  step  4500: train_bpb=8.3630 (28ms)
+  step  4750: val_bpb=1.669692
+  step  5000: val_bpb=1.682676
+  step  5000: train_bpb=8.4292 (28ms)
+  step  5250: val_bpb=1.687658
+  step  5500: val_bpb=1.722448
+  step  5500: train_bpb=8.4646 (28ms)
+  step  5750: val_bpb=1.706057
+  step  6000: val_bpb=1.686249
+  step  6000: train_bpb=8.6624 (28ms)
+  step  6250: val_bpb=1.660275
+  step  6500: val_bpb=1.673147
+  step  6500: train_bpb=8.1351 (28ms)
+  step  6750: val_bpb=1.669219
+  step  7000: val_bpb=1.639769
+  step  7000: train_bpb=8.8083 (28ms)
+  step  7250: val_bpb=1.686458
+  step  7500: val_bpb=1.663005
+  step  7500: train_bpb=8.8517 (28ms)
+  step  7750: val_bpb=1.681988
+  step  8000: val_bpb=1.650691
+  step  8000: train_bpb=7.9612 (28ms)
+  step  8250: val_bpb=1.634777
+  step  8500: val_bpb=1.659353
+  step  8500: train_bpb=8.9249 (28ms)
+  step  8750: val_bpb=1.671853
+  step  9000: val_bpb=1.646191
+  step  9000: train_bpb=8.3152 (28ms)
+  step  9250: val_bpb=1.648043
+  step  9500: val_bpb=1.658498
+  step  9500: train_bpb=8.4867 (29ms)
+  step  9750: val_bpb=1.657451
+  step 10000: val_bpb=1.655353
+  step 10000: train_bpb=8.6216 (28ms)
+  step 10250: val_bpb=1.660705
+  step 10500: val_bpb=1.656686
+  step 10500: train_bpb=7.4756 (28ms)
+  step 10750: val_bpb=1.634222
+  step 11000: val_bpb=1.610557
+  step 11000: train_bpb=7.6804 (29ms)
+  step 11250: val_bpb=1.607154
+  step 11500: val_bpb=1.600169
+  step 11500: train_bpb=8.5541 (28ms)
+  step 11750: val_bpb=1.581560
+  step 12000: val_bpb=1.604309
+  step 12000: train_bpb=8.0424 (28ms)
+  step 12250: val_bpb=1.590380
+  step 12500: val_bpb=1.585677
+  step 12500: train_bpb=7.2846 (28ms)
+  step 12750: val_bpb=1.570063
+  step 13000: val_bpb=1.567042
+  step 13000: train_bpb=7.2393 (28ms)
+  step 13250: val_bpb=1.540417
+  step 13500: val_bpb=1.550625
+  step 13500: train_bpb=8.1404 (28ms)
+  step 13750: val_bpb=1.564448
+  step 14000: val_bpb=1.560071
+  step 14000: train_bpb=8.2891 (28ms)
+  step 14250: val_bpb=1.534623
+  step 14500: val_bpb=1.548654
+  step 14500: train_bpb=8.0018 (28ms)
+  step 14750: val_bpb=1.540028
+  step 15000: val_bpb=1.528185
+  step 15000: train_bpb=7.7649 (28ms)
+  step 15250: val_bpb=1.518134
+  step 15500: val_bpb=1.511686
+  step 15500: train_bpb=7.6493 (28ms)
+  step 15750: val_bpb=1.494960
+  step 16000: val_bpb=1.494340
+  step 16000: train_bpb=7.8010 (28ms)
+  step 16250: val_bpb=1.510139
+  step 16500: val_bpb=1.503772
+  step 16500: train_bpb=7.6040 (28ms)
+  step 16750: val_bpb=1.486912
+  step 17000: val_bpb=1.479565
+  step 17000: train_bpb=8.2180 (28ms)
+  step 17250: val_bpb=1.481439
+  step 17500: val_bpb=1.462624
+  step 17500: train_bpb=7.2022 (28ms)
+  step 17750: val_bpb=1.471626
+  step 18000: val_bpb=1.468328
+  step 18000: train_bpb=6.7655 (28ms)
+  step 18250: val_bpb=1.464164
+  step 18500: val_bpb=1.451143
+  step 18500: train_bpb=7.8149 (28ms)
+  step 18750: val_bpb=1.450354
+  step 19000: val_bpb=1.452663
+  step 19000: train_bpb=7.9726 (28ms)
+  step 19250: val_bpb=1.440659
+  step 19500: val_bpb=1.432919
+  step 19500: train_bpb=6.6757 (28ms)
+  step 19750: val_bpb=1.426606
+  step 20000: val_bpb=1.426536
+
+Saved results to /mnt/sharefs/user54/nanoe/runs/enigma_s5_prod_frontier_r1/results/H64_H60_H73_H538_20k_real.json
+Final BPB: 1.426536

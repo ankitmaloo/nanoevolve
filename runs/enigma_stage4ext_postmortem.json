@@ -1,0 +1,197 @@
+{
+  "title": "Enigma Stage 4 Extension Postmortem — Compound Tests, 20k Follow-up, and Phase-Shift Reasoning",
+  "date": "2026-03-16",
+  "stage": "4ext",
+  "objective": "Extend Stage 4 without declaring Stage 5 yet: test compounds of the Stage 4 winners against the production-faithful baseline, then run a longer 20k follow-up on the strongest trustworthy extension result.",
+
+  "scope": {
+    "compound_batch": "12 runs at 5000 steps: baseline, 4 solos, selected 2-way controls, 3-of-4 leave-one-out variants, and the full 4-way stack",
+    "long_run_batch": "2 runs at 20000 steps: baseline and H60_solo",
+    "naming_note": "These runs are Stage 4 extensions, not Stage 5. They operate in the same production-faithful evaluation regime established in Stage 4."
+  },
+
+  "infrastructure": {
+    "hardware": "NVIDIA B200 GPU (183 GB VRAM)",
+    "cluster": "Slurm, priority partition, us-west-a2 nodes",
+    "model": "NanoChat GPT-2 (12 layers, 768 dim, 6 heads)",
+    "dataset": "karpathy/climbmix-400b-shuffle",
+    "batch_size": "1024 tokens (device_batch=2, seq_len=512)",
+    "step_time": "~28ms per step",
+    "optimizer": "Production MuonAdamW with Stage 4-style monkey-patches / schedule overrides"
+  },
+
+  "methodology": {
+    "baseline_regime": "Same production-faithful schedule regime as Stage 4: LR linear warmdown over last 50%, Muon momentum 0.85→0.95 over 300 steps, Muon WD linear decay to 0",
+    "extension_runner": "enigma/run_stage5.py reused the Stage 4 production-faithful loop, added compound feature flags, and later added flushed logging plus train_bpb checkpoints",
+    "important_warning": "The extension runner applied H64 by overwriting group['momentum'] on Muon groups. That is NOT the same mechanism as the Stage 4 H64 winner, which patched Muon to decouple Nesterov blend from momentum. Therefore any Stage 4 extension result that includes H64 is directionally interesting but not fully trustworthy.",
+    "consequence": "H60/H73 results are high-confidence. H64-containing compounds are lower-confidence until H64 is ported faithfully."
+  },
+
+  "stage4_recap": {
+    "trusted_stage4_winners": [
+      {"id": "H64", "delta_5k": "+0.062973", "note": "Best Stage 4 single mutation, but requires a true decoupled Nesterov-blend patch"},
+      {"id": "H73", "delta_5k": "+0.045924", "note": "AdamW epsilon schedule"},
+      {"id": "H60", "delta_5k": "+0.031391", "note": "Muon beta2 warmup"},
+      {"id": "H71", "delta_5k": "+0.020172", "note": "AdamW beta1 warmup"}
+    ],
+    "goal_of_extension": "Determine whether the winners compound and whether any solo winner strengthens or weakens at longer horizons."
+  },
+
+  "results_5000steps_compound_batch": {
+    "baseline_bpb": 1.531135,
+    "ranking": [
+      {"rank": 1, "id": "H60_solo", "bpb": 1.479033, "delta": "+0.052102", "verdict": "WIN", "confidence": "high"},
+      {"rank": 2, "id": "H64_H73_H60_H71", "bpb": 1.495391, "delta": "+0.035744", "verdict": "WIN", "confidence": "medium-low"},
+      {"rank": 3, "id": "H73_solo", "bpb": 1.499870, "delta": "+0.031266", "verdict": "WIN", "confidence": "high"},
+      {"rank": 4, "id": "H64_H73_H71", "bpb": 1.506271, "delta": "+0.024865", "verdict": "WIN", "confidence": "medium-low"},
+      {"rank": 5, "id": "H64_H73", "bpb": 1.506828, "delta": "+0.024307", "verdict": "WIN", "confidence": "medium-low"},
+      {"rank": 6, "id": "H64_H73_H60", "bpb": 1.509481, "delta": "+0.021654", "verdict": "WIN", "confidence": "medium-low"},
+      {"rank": 7, "id": "H73_H60_H71", "bpb": 1.513390, "delta": "+0.017746", "verdict": "WIN", "confidence": "medium"},
+      {"rank": 8, "id": "H64_H60", "bpb": 1.526441, "delta": "+0.004694", "verdict": "MARGINAL", "confidence": "medium-low"},
+      {"rank": 9, "id": "H64_solo", "bpb": 1.530221, "delta": "+0.000914", "verdict": "FLAT", "confidence": "low"},
+      {"rank": 10, "id": "none", "bpb": 1.531135, "delta": "0.000000", "verdict": "BASE", "confidence": "high"},
+      {"rank": 11, "id": "H64_H60_H71", "bpb": 1.532551, "delta": "-0.001416", "verdict": "LOSE", "confidence": "medium-low"},
+      {"rank": 12, "id": "H71_solo", "bpb": 1.533133, "delta": "-0.001998", "verdict": "LOSE", "confidence": "medium"}
+    ],
+    "headline": "The strongest trustworthy 5k result is H60_solo. The best raw compound result is the full 4-way stack, but its interpretation is limited by the H64 fidelity gap."
+  },
+
+  "results_20000steps_followup": {
+    "baseline_bpb": 1.456351,
+    "h60_bpb": 1.420609,
+    "delta": "+0.035742",
+    "step_time_ms": {
+      "baseline": 27.805,
+      "h60": 27.919
+    },
+    "selected_checkpoints": [
+      {"step": 250, "baseline": 1.965135, "h60": 1.975223, "delta": "-0.010088"},
+      {"step": 500, "baseline": 1.911729, "h60": 1.918640, "delta": "-0.006911"},
+      {"step": 1000, "baseline": 1.841802, "h60": 1.873243, "delta": "-0.031440"},
+      {"step": 2000, "baseline": 1.749741, "h60": 1.794437, "delta": "-0.044696"},
+      {"step": 5000, "baseline": 1.678841, "h60": 1.742318, "delta": "-0.063476"},
+      {"step": 10000, "baseline": 1.662976, "h60": 1.672837, "delta": "-0.009861"},
+      {"step": 11250, "baseline": 1.636125, "h60": 1.642892, "delta": "-0.006767"},
+      {"step": 15000, "baseline": 1.559737, "h60": 1.516922, "delta": "+0.042815"},
+      {"step": 16000, "baseline": 1.551249, "h60": 1.492287, "delta": "+0.058962"},
+      {"step": 17500, "baseline": 1.504664, "h60": 1.466352, "delta": "+0.038313"},
+      {"step": 20000, "baseline": 1.456351, "h60": 1.420609, "delta": "+0.035742"}
+    ],
+    "curve_summary": "H60 is clearly worse for much of the first half, nearly catches baseline by 10k-11k, then crosses decisively after warmdown and stays ahead through the end."
+  },
+
+  "reasoning": {
+    "R1_h60_is_a_phase_specific_win": {
+      "observation": "H60 loses early and wins late. It is behind baseline at 5k by -0.063 BPB, nearly tied at 10k-11k, then ahead by +0.043 at 15k and +0.036 at 20k.",
+      "mechanistic_explanation": "A lower beta2 early makes Muon's second-moment estimate shorter-memory and more reactive. That can hurt immediate loss because less smoothing exposes more short-horizon noise. But later, once the model enters the LR warmdown regime, the variance tracker appears better conditioned: it has adapted to actual matrix-scale statistics rather than staying over-smoothed by the fixed beta2=0.95 history. The advantage shows up exactly when late-stage refinement starts to matter.",
+      "why_this_matters": "This is not a generic 'better from step 0' improvement. It is a phase-shift optimization: accept a weaker early trajectory to arrive at a more usable optimizer state for the second half of training."
+    },
+    "R2_h60_helped_train_loss_not_just_val_noise": {
+      "observation": "The 20k logs show lower train_bpb for H60 in the late regime: at 15k, 7.7995 vs 8.0937; at 17.5k, 7.1662 vs 7.2728.",
+      "mechanistic_explanation": "If the win were just validation noise or accidental regularization, train_bpb would not systematically improve alongside val_bpb. The fact that both improve indicates the mutation is helping optimization quality in late training, not merely shifting the train/val tradeoff."
+    },
+    "R3_h73_remains_real_but_needs_long_run_confirmation": {
+      "observation": "H73_solo is still a clear 5k win in the extension batch (+0.031266), even under a fresh baseline.",
+      "mechanistic_explanation": "This reinforces the Stage 4 view that AdamW epsilon scheduling stabilizes the embedding/scalar path early, likely by capping oversized adaptive steps when second-moment estimates are immature.",
+      "what_is_missing": "H73 was not taken to 20k in this extension. Its long-horizon interaction with warmdown is still unmeasured."
+    },
+    "R4_h64_results_in_extension_are_not_decisive": {
+      "observation": "H64_solo nearly flattened in the extension batch (+0.0009), and all compounds containing H64 underperformed the trustworthy H60 solo result.",
+      "mechanistic_explanation": "This does NOT falsify Stage 4 H64. The extension runner did not implement the Stage 4 mechanism faithfully. Stage 4 H64 patched Muon so the Nesterov interpolation coefficient was scheduled separately from momentum. The extension runner only overwrote group momentum, collapsing two distinct controls back into one. That changes the algorithm materially.",
+      "implication": "The Stage 4 extension batch says more about the quality of the H64 approximation than about the true H64 mutation."
+    },
+    "R5_compounding_is_not_automatically_additive": {
+      "observation": "The best trustworthy solo at 5k is H60_solo (+0.052), while the best raw 4-way stack is smaller (+0.036). The 3-of-4 leave-one-out variants are all clustered in the +0.018 to +0.025 range.",
+      "mechanistic_explanation": "The optimizer seems to prefer a few coherent schedule changes over many simultaneous ones. Even when changes touch different parameters, they may compete to shape the same training phase. In particular, if H60's advantage emerges during warmdown, then AdamW-side changes that mostly help early training may dilute rather than amplify the late-phase gain."
+    }
+  },
+
+  "negative_knowledge": {
+    "NK22": {
+      "finding": "A non-faithful reproduction of a winning mutation can destroy its apparent effect",
+      "evidence": "H64 looked flat in the extension batch because it was approximated by momentum overwrite rather than true Nesterov-blend decoupling.",
+      "do_not_repeat": "Do not judge H64 compounds until H64 is ported with the exact Stage 4 mechanism."
+    },
+    "NK23": {
+      "finding": "5k ranking is insufficient for schedule mutations that target optimizer state formation",
+      "evidence": "H60 is only the 3rd-place winner in Stage 4 at 5k, but becomes the strongest trustworthy result at 20k.",
+      "do_not_repeat": "Do not eliminate phase-shift schedule ideas solely because they are behind at 5k."
+    },
+    "NK24": {
+      "finding": "H71 alone is not robust enough to justify immediate promotion",
+      "evidence": "H71_solo lost in the extension batch (-0.001998) despite looking positive in Stage 4.",
+      "do_not_repeat": "Treat H71 as a conditional helper until it proves itself in a faithful long-run setting."
+    }
+  },
+
+  "meta_lessons": [
+    {
+      "id": "ML14",
+      "lesson": "Schedule mutations can be phase-selective, not uniformly beneficial",
+      "evidence": "H60 is worse through most of the first half, then becomes strongly better after warmdown begins."
+    },
+    {
+      "id": "ML15",
+      "lesson": "Late training behavior deserves separate measurement from 5k screening",
+      "evidence": "The 20k H60 result reverses the short-horizon impression and produces a high-confidence +0.036 win."
+    },
+    {
+      "id": "ML16",
+      "lesson": "Implementation fidelity matters even inside the production-faithful regime",
+      "evidence": "The extension loop remained production-faithful overall, but the H64 approximation was not faithful to the Stage 4 mechanism and muddied compound interpretation."
+    },
+    {
+      "id": "ML17",
+      "lesson": "Useful optimizer hypotheses come from inspecting loss traces, not just final BPB tables",
+      "evidence": "The train_bpb logs showed H60 lowering late training loss as well as validation loss, which strengthens the mechanistic case."
+    }
+  ],
+
+  "paths_promising": [
+    {
+      "priority": 1,
+      "path": "Faithful H64 port, then rerun compounds",
+      "reason": "All extension results involving H64 are currently confounded. Restoring the true decoupled Nesterov-blend mechanism is required before any H64 compound decision is meaningful."
+    },
+    {
+      "priority": 2,
+      "path": "Take H60 + H73 to 20k",
+      "reason": "H60 is the best trustworthy long-run result. H73 remains a solid trustworthy 5k winner on an independent path. This is the cleanest next compound."
+    },
+    {
+      "priority": 3,
+      "path": "Explore longer or phase-linked beta2 schedules",
+      "reason": "H60's gain appears after warmdown begins. That suggests beta2 may need to be scheduled on the timescale of training phases, not only the first 500 steps."
+    },
+    {
+      "priority": 4,
+      "path": "Loss- or warmdown-aware second-moment control on Muon",
+      "reason": "The evidence now points toward second-moment responsiveness as the late-phase bottleneck. A schedule keyed to LR warmdown onset or loss-improvement slowdown is plausible."
+    },
+    {
+      "priority": 5,
+      "path": "Re-test H71 only in faithful compound settings",
+      "reason": "H71 alone is weak, but it may still help when paired with H73 or a faithful H64. It should not be promoted or discarded solely from the extension batch."
+    }
+  ],
+
+  "final_recommendation": {
+    "most_trustworthy_current_winner": {
+      "id": "H60",
+      "title": "Muon beta2 warmup 0.8→0.95",
+      "evidence": "Wins at 5k in Stage 4, is the best trustworthy solo in the 5k extension batch, and wins by +0.035742 at 20k with lower late train_bpb."
+    },
+    "decision": "Carry H60 forward as the highest-confidence mutation discovered so far. Do not demote H64, but do not use extension-batch H64 results for decision-making until the patch is faithful."
+  },
+
+  "artifacts": {
+    "compound_folder": "runs/enigma_s4ext_compound/",
+    "compound_results": "runs/enigma_s4ext_compound/results/",
+    "longrun_folder": "runs/enigma_s4ext_20k_h60/",
+    "longrun_results": "runs/enigma_s4ext_20k_h60/results/",
+    "longrun_logs": "runs/enigma_s4ext_20k_h60/logs/",
+    "runner_module": "enigma/run_stage5.py",
+    "patch_module": "enigma/stage5_patch.py",
+    "stage4_postmortem": "runs/enigma_stage4_postmortem.json"
+  }
+}

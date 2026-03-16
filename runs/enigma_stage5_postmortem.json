@@ -1,0 +1,259 @@
+{
+  "title": "Enigma Stage 5 Postmortem — 20k Production Loop with Dual Baselines, Composite, and Leave-One-Out Attribution",
+  "date": "2026-03-16",
+  "stage": 5,
+  "objective": "Run a 20k production-faithful Stage 5 loop with two baselines (pure production and promoted parent), one Muon-side new code path, one cross-path new code path, a full four-way composite, and all four leave-one-out ablations.",
+
+  "infrastructure": {
+    "hardware": "NVIDIA B200 GPU (183 GB VRAM)",
+    "cluster": "Slurm, priority partition, us-west-a2 nodes",
+    "job_id": 2003,
+    "model": "NanoChat GPT-2 (12 layers, 768 dim, 6 heads)",
+    "dataset": "karpathy/climbmix-400b-shuffle",
+    "batch_size": "1024 tokens (device_batch=2, seq_len=512)",
+    "step_time_ms": "~28",
+    "optimizer": "Production MuonAdamW with production schedules active"
+  },
+
+  "stage_design": {
+    "baselines": [
+      {"id": "none", "role": "pure production baseline"},
+      {"id": "H60_solo", "role": "promoted parent baseline from Stage 4 extension"}
+    ],
+    "secondary_parent": {"id": "H73_solo", "role": "carry strongest AdamW family into 20k"},
+    "outside_ideas": [
+      {"id": "H504_beta2_phase2", "description": "Muon-side new code path: warmdown-aware second-phase beta2 schedule"},
+      {"id": "H517_shared_phase", "description": "Cross-path new code path: one shared warmdown phase variable driving Muon beta2 and AdamW eps"}
+    ],
+    "composite": "H64_H60_H73_H71",
+    "leave_one_out_set": [
+      "H60_H73_H71",
+      "H64_H73_H71",
+      "H64_H60_H71",
+      "H64_H60_H73"
+    ],
+    "important_methodology_note": "Stage 5 included a faithful H64 port inside the runner by patching MuonAdamW._step_muon to schedule Nesterov blend separately from momentum. This removes the main H64 fidelity issue from Stage 4 extension."
+  },
+
+  "results_20000steps": {
+    "production_baseline_bpb": 1.425995,
+    "parent_baseline_bpb": 1.428568,
+    "ranking": [
+      {"rank": 1, "id": "H64_H60_H73", "bpb": 1.397882, "delta_vs_prod": "+0.028113", "delta_vs_h60": "+0.030685", "verdict": "BEST"},
+      {"rank": 2, "id": "H73_solo", "bpb": 1.413164, "delta_vs_prod": "+0.012831", "delta_vs_h60": "+0.015403", "verdict": "BEST_SINGLE"},
+      {"rank": 3, "id": "H64_H60_H71", "bpb": 1.422695, "delta_vs_prod": "+0.003300", "delta_vs_h60": "+0.005873", "verdict": "WIN"},
+      {"rank": 4, "id": "H60_H73_H71", "bpb": 1.424924, "delta_vs_prod": "+0.001071", "delta_vs_h60": "+0.003644", "verdict": "MARGINAL"},
+      {"rank": 5, "id": "none", "bpb": 1.425995, "delta_vs_prod": "0.000000", "delta_vs_h60": "+0.002573", "verdict": "BASE"},
+      {"rank": 6, "id": "H60_solo", "bpb": 1.428568, "delta_vs_prod": "-0.002573", "delta_vs_h60": "0.000000", "verdict": "PARENT_LOST"},
+      {"rank": 7, "id": "H64_H60_H73_H71", "bpb": 1.430382, "delta_vs_prod": "-0.004387", "delta_vs_h60": "-0.001814", "verdict": "LOSE"},
+      {"rank": 8, "id": "H64_H73_H71", "bpb": 1.436129, "delta_vs_prod": "-0.010134", "delta_vs_h60": "-0.007561", "verdict": "LOSE"},
+      {"rank": 9, "id": "H517_shared_phase", "bpb": 1.438283, "delta_vs_prod": "-0.012288", "delta_vs_h60": "-0.009715", "verdict": "LOSE"},
+      {"rank": 10, "id": "H504_beta2_phase2", "bpb": 1.472454, "delta_vs_prod": "-0.046459", "delta_vs_h60": "-0.043887", "verdict": "LOSE"}
+    ]
+  },
+
+  "composite_attribution": {
+    "full_stack": {"id": "H64_H60_H73_H71", "bpb": 1.430382},
+    "leave_one_out_deltas": [
+      {
+        "removed": "H64",
+        "run": "H60_H73_H71",
+        "bpb": 1.424924,
+        "delta_vs_full": "+0.005458",
+        "interpretation": "Removing H64 improves the four-way stack. H64 is harmful inside this exact stack."
+      },
+      {
+        "removed": "H60",
+        "run": "H64_H73_H71",
+        "bpb": 1.436129,
+        "delta_vs_full": "-0.005747",
+        "interpretation": "Removing H60 hurts. H60 is the only clearly helpful component inside the four-way stack."
+      },
+      {
+        "removed": "H73",
+        "run": "H64_H60_H71",
+        "bpb": 1.422695,
+        "delta_vs_full": "+0.007687",
+        "interpretation": "Removing H73 improves the four-way stack. H73 becomes harmful when H71 is present."
+      },
+      {
+        "removed": "H71",
+        "run": "H64_H60_H73",
+        "bpb": 1.397882,
+        "delta_vs_full": "+0.032499",
+        "interpretation": "Removing H71 causes a dramatic improvement. H71 is the main reason the four-way stack fails."
+      }
+    ],
+    "bottom_line": "The four-way stack is not additive. H71 is the dominant negative interaction. Once H71 is removed, the remaining H64+H60+H73 triple becomes the best result of the entire loop."
+  },
+
+  "selected_curve_readouts": {
+    "H73_solo": {
+      "curve_shape": "Middling early and mid-run, then strong late acceleration. Worse than baseline at 10k and 15k, clearly best single mutation by 20k.",
+      "checkpoints": [
+        {"step": 5000, "val_bpb": 1.684002},
+        {"step": 10000, "val_bpb": 1.679258},
+        {"step": 15000, "val_bpb": 1.555118},
+        {"step": 17500, "val_bpb": 1.484034},
+        {"step": 20000, "val_bpb": 1.413164}
+      ]
+    },
+    "H64_H60_H73": {
+      "curve_shape": "Very strong very early, loses ground in the middle, then breaks away decisively after 15k. Best final curve in the loop.",
+      "checkpoints": [
+        {"step": 250, "val_bpb": 1.943023},
+        {"step": 2000, "val_bpb": 1.754592},
+        {"step": 10000, "val_bpb": 1.668886},
+        {"step": 15000, "val_bpb": 1.542521},
+        {"step": 17500, "val_bpb": 1.470264},
+        {"step": 20000, "val_bpb": 1.397882}
+      ]
+    },
+    "H517_shared_phase": {
+      "curve_shape": "Competitive through much of training and often ahead in the middle regime, but too conservative in the endgame and loses final convergence.",
+      "checkpoints": [
+        {"step": 1000, "val_bpb": 1.832000},
+        {"step": 2000, "val_bpb": 1.744612},
+        {"step": 10000, "val_bpb": 1.651937},
+        {"step": 20000, "val_bpb": 1.438283}
+      ]
+    },
+    "H504_beta2_phase2": {
+      "curve_shape": "Looks good early, then degrades steadily relative to the frontier. The late-phase beta2 raise oversmooths and leaves quality on the table.",
+      "checkpoints": [
+        {"step": 500, "val_bpb": 1.870685},
+        {"step": 10000, "val_bpb": 1.674236},
+        {"step": 15000, "val_bpb": 1.568690},
+        {"step": 20000, "val_bpb": 1.472454}
+      ]
+    }
+  },
+
+  "reasoning": {
+    "R1_h73_is_the_best_single_mutation_now": {
+      "observation": "H73_solo beats production by +0.012831 and beats the carried H60 parent by +0.015403. No other single mutation in this batch is close.",
+      "mechanistic_explanation": "The stretched AdamW epsilon schedule appears to be the most robust long-horizon single mechanism. It likely stabilizes adaptive step sizes enough early and leaves enough sharpness late to survive all the way to 20k."
+    },
+    "R2_h60_is_not_robust_enough_to_remain_the_parent": {
+      "observation": "H60_solo lost to the pure production baseline by -0.002573 in this batch.",
+      "mechanistic_explanation": "This does not prove H60 is useless. It does show that H60 is not stable enough across batches/runs to remain the unquestioned promoted parent. The Stage 5 loop should update the frontier parent to H73_solo, not H60_solo."
+    },
+    "R3_h71_is_the_main_negative_interaction": {
+      "observation": "Removing H71 from the four-way stack improves BPB by +0.032499, a much larger effect than any other leave-one-out change.",
+      "mechanistic_explanation": "H71 likely overshapes the AdamW path when combined with H73 and the Muon-side changes. The stack already contains strong adaptation on both paths; extra AdamW beta1 warmup appears to overconstrain or mis-time the embedding/scalar dynamics."
+    },
+    "R4_h64_is_not_dead_but_needs_cleaner attribution": {
+      "observation": "Within the four-way stack, removing H64 helps (+0.005458), but the best overall run still contains H64 (H64_H60_H73).",
+      "mechanistic_explanation": "This means H64 is not globally harmful or globally helpful. Its value is interaction-dependent. We cannot isolate its contribution to the winning H64+H60+H73 triple because Stage 5 did not include a direct H60+H73 comparator."
+    },
+    "R5_h517_is_directionally interesting but underpowered": {
+      "observation": "H517 was competitive through much of the run and often ahead around 1k-10k, but lost by 20k.",
+      "mechanistic_explanation": "A single warmdown-phase variable is the right kind of code change, but the specific H517 implementation likely held AdamW epsilon too high for too long. It improved regime coordination but not enough endgame sharpness."
+    },
+    "R6_h504_is_the_wrong_extension_of_h60": {
+      "observation": "H504 looked strong at 500 but collapsed to the worst result in the loop by 20k.",
+      "mechanistic_explanation": "Raising Muon beta2 further in warmdown to 0.99 over-stabilized the second-moment estimate. The late phase wanted refinement, but this schedule smoothed away too much adaptation."
+    },
+    "R7_stage5_absolute_numbers_shifted_from_the_previous_20k_batch": {
+      "observation": "The Stage 5 production baseline (1.425995) is materially better than the earlier standalone 20k production baseline (1.456351).",
+      "mechanistic_explanation": "This suggests there is still run-to-run variance or hidden evaluator nondeterminism, likely in data-order or loader behavior. Conclusions should therefore prioritize within-batch comparisons more than cross-batch absolute BPB numbers."
+    }
+  },
+
+  "negative_knowledge": {
+    "NK25": {
+      "finding": "H71 should not be included in composites by default",
+      "evidence": "Removing H71 from the four-way stack improves by +0.032499 and yields the best run of the entire loop.",
+      "do_not_repeat": "Do not carry H71 into new stacks unless the hypothesis explicitly explains why the interaction changed."
+    },
+    "NK26": {
+      "finding": "The specific H504 warmdown-beta2 extension is a dead end",
+      "evidence": "H504 loses badly at 20k despite strong early checkpoints.",
+      "do_not_repeat": "Do not raise Muon beta2 into the 0.99 regime during warmdown using this simple schedule."
+    },
+    "NK27": {
+      "finding": "A shared phase variable is not automatically a win",
+      "evidence": "H517 looked plausible and competitive early/mid-run but lost by the end.",
+      "do_not_repeat": "Do not assume that phase coordination alone helps; the governed signals and terminal behavior matter."
+    }
+  },
+
+  "meta_lessons": [
+    {
+      "id": "ML18",
+      "lesson": "The best single mutation and the best composite can be different frontier objects",
+      "evidence": "H73_solo is the best single mutation, while H64+H60+H73 is the best overall run."
+    },
+    {
+      "id": "ML19",
+      "lesson": "Composite attribution is mandatory; full-stack scores alone are misleading",
+      "evidence": "The four-way stack lost, but the LOO removing H71 became the best run overall."
+    },
+    {
+      "id": "ML20",
+      "lesson": "Interaction effects dominate at 20k",
+      "evidence": "H71 is weakly plausible alone yet strongly harmful inside the stack; H64 is harmful in one stack but present in the winning triple."
+    },
+    {
+      "id": "ML21",
+      "lesson": "Outside code-change ideas are worth testing even when they lose",
+      "evidence": "H517 was not a win, but it revealed that cross-path phase coordination can improve the middle regime while still failing the endgame."
+    }
+  ],
+
+  "paths_promising": [
+    {
+      "priority": 1,
+      "path": "Promote H73_solo to the new parent baseline",
+      "reason": "It is the best single mutation in the Stage 5 batch and is more robust than H60 in this loop."
+    },
+    {
+      "priority": 2,
+      "path": "Replicate H64_H60_H73 and add the missing H60_H73 comparator",
+      "reason": "The winning triple is real in this batch, but H64’s marginal value inside it is still unmeasured."
+    },
+    {
+      "priority": 3,
+      "path": "Retire H71 from default composites",
+      "reason": "Stage 5 shows H71 is the dominant antagonist in the full stack."
+    },
+    {
+      "priority": 4,
+      "path": "Design a sharper successor to H517",
+      "reason": "Cross-path phase control is directionally interesting, but H517 kept the system too conservative late."
+    },
+    {
+      "priority": 5,
+      "path": "Investigate run-to-run variance before overinterpreting cross-batch deltas",
+      "reason": "The production baseline shifted materially relative to the earlier 20k batch."
+    }
+  ],
+
+  "final_recommendation": {
+    "new_parent": {
+      "id": "H73_solo",
+      "title": "AdamW epsilon schedule over total training steps",
+      "reason": "Best single mutation in the Stage 5 production batch"
+    },
+    "frontier_composite": {
+      "id": "H64_H60_H73",
+      "title": "Faithful H64 + H60 + H73",
+      "reason": "Best overall run in Stage 5"
+    },
+    "do_not_carry_forward_by_default": [
+      "H71 in composite stacks",
+      "H504_beta2_phase2"
+    ]
+  },
+
+  "artifacts": {
+    "context": "runs/enigma_s5_prod/stage5_context.md",
+    "hypotheses": "runs/enigma_s5_prod/hypotheses.md",
+    "gaps": "runs/enigma_s5_prod/gaps.md",
+    "portfolio": "runs/enigma_s5_prod/portfolio.md",
+    "slurm_script": "runs/enigma_s5_prod/slurm_s5_prod_20k.sh",
+    "results": "runs/enigma_s5_prod/results/",
+    "logs": "runs/enigma_s5_prod/logs/",
+    "previous_postmortem": "runs/enigma_stage4ext_postmortem.json"
+  }
+}

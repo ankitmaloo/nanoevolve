@@ -1,0 +1,109 @@
+{
+  "mutation": "H64_H73_H60_H71",
+  "features": [
+    "H60",
+    "H64",
+    "H71",
+    "H73"
+  ],
+  "valid": true,
+  "failure_type": null,
+  "final_validation_bpb": 1.4953909670421732,
+  "best_validation_bpb": 1.4953909670421732,
+  "mean_step_time_ms": 28.01684073242359,
+  "total_time_s": 144.06464404199505,
+  "steps_completed": 5000,
+  "curve": [
+    {
+      "step": 0,
+      "val_bpb": 3.0134784160965746
+    },
+    {
+      "step": 250,
+      "val_bpb": 1.9880484449787317
+    },
+    {
+      "step": 500,
+      "val_bpb": 1.8986909326965145
+    },
+    {
+      "step": 750,
+      "val_bpb": 1.8691292376228759
+    },
+    {
+      "step": 1000,
+      "val_bpb": 1.8377236246464186
+    },
+    {
+      "step": 1250,
+      "val_bpb": 1.8217653854052283
+    },
+    {
+      "step": 1500,
+      "val_bpb": 1.7907779876052876
+    },
+    {
+      "step": 1750,
+      "val_bpb": 1.7591630635625424
+    },
+    {
+      "step": 2000,
+      "val_bpb": 1.7768358086798253
+    },
+    {
+      "step": 2250,
+      "val_bpb": 1.7392895000787967
+    },
+    {
+      "step": 2500,
+      "val_bpb": 1.738125877054418
+    },
+    {
+      "step": 2750,
+      "val_bpb": 1.7185059828473785
+    },
+    {
+      "step": 3000,
+      "val_bpb": 1.7008139751433085
+    },
+    {
+      "step": 3250,
+      "val_bpb": 1.6713017930568346
+    },
+    {
+      "step": 3500,
+      "val_bpb": 1.656914946811028
+    },
+    {
+      "step": 3750,
+      "val_bpb": 1.5988870823742758
+    },
+    {
+      "step": 4000,
+      "val_bpb": 1.5500489640072987
+    },
+    {
+      "step": 4250,
+      "val_bpb": 1.5280858168131857
+    },
+    {
+      "step": 4500,
+      "val_bpb": 1.5360187469210973
+    },
+    {
+      "step": 4750,
+      "val_bpb": 1.5155149441541544
+    },
+    {
+      "step": 5000,
+      "val_bpb": 1.4953909670421732
+    }
+  ],
+  "production_baseline": true,
+  "baseline_schedules": {
+    "lr": "linear_warmdown_50pct",
+    "momentum": "warmup_0.85_to_0.95_over_300",
+    "weight_decay": "linear_decay_to_0"
+  },
+  "compound_testing": true
+}

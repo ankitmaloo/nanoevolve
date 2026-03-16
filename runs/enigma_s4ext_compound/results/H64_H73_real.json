@@ -1,0 +1,107 @@
+{
+  "mutation": "H64_H73",
+  "features": [
+    "H64",
+    "H73"
+  ],
+  "valid": true,
+  "failure_type": null,
+  "final_validation_bpb": 1.5068283314251836,
+  "best_validation_bpb": 1.5068283314251836,
+  "mean_step_time_ms": 28.0357042062853,
+  "total_time_s": 144.20820883699344,
+  "steps_completed": 5000,
+  "curve": [
+    {
+      "step": 0,
+      "val_bpb": 3.0134784160965746
+    },
+    {
+      "step": 250,
+      "val_bpb": 1.9526851843295945
+    },
+    {
+      "step": 500,
+      "val_bpb": 1.8950877437511255
+    },
+    {
+      "step": 750,
+      "val_bpb": 1.8890101263156815
+    },
+    {
+      "step": 1000,
+      "val_bpb": 1.8301682141091349
+    },
+    {
+      "step": 1250,
+      "val_bpb": 1.7939909056902035
+    },
+    {
+      "step": 1500,
+      "val_bpb": 1.7685518111451137
+    },
+    {
+      "step": 1750,
+      "val_bpb": 1.7327118692989998
+    },
+    {
+      "step": 2000,
+      "val_bpb": 1.7417966207055822
+    },
+    {
+      "step": 2250,
+      "val_bpb": 1.7233707355753185
+    },
+    {
+      "step": 2500,
+      "val_bpb": 1.7254165036833453
+    },
+    {
+      "step": 2750,
+      "val_bpb": 1.6990541614926598
+    },
+    {
+      "step": 3000,
+      "val_bpb": 1.675530609116753
+    },
+    {
+      "step": 3250,
+      "val_bpb": 1.6443792080250805
+    },
+    {
+      "step": 3500,
+      "val_bpb": 1.6252240576372907
+    },
+    {
+      "step": 3750,
+      "val_bpb": 1.6045912497996806
+    },
+    {
+      "step": 4000,
+      "val_bpb": 1.5655366263923955
+    },
+    {
+      "step": 4250,
+      "val_bpb": 1.5687502227374097
+    },
+    {
+      "step": 4500,
+      "val_bpb": 1.5558331661242848
+    },
+    {
+      "step": 4750,
+      "val_bpb": 1.5230401042910606
+    },
+    {
+      "step": 5000,
+      "val_bpb": 1.5068283314251836
+    }
+  ],
+  "production_baseline": true,
+  "baseline_schedules": {
+    "lr": "linear_warmdown_50pct",
+    "momentum": "warmup_0.85_to_0.95_over_300",
+    "weight_decay": "linear_decay_to_0"
+  },
+  "compound_testing": true
+}

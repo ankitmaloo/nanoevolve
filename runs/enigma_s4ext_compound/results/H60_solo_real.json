@@ -1,0 +1,106 @@
+{
+  "mutation": "H60_solo",
+  "features": [
+    "H60"
+  ],
+  "valid": true,
+  "failure_type": null,
+  "final_validation_bpb": 1.4790330969511556,
+  "best_validation_bpb": 1.4790330969511556,
+  "mean_step_time_ms": 27.59180074610049,
+  "total_time_s": 141.98005957400892,
+  "steps_completed": 5000,
+  "curve": [
+    {
+      "step": 0,
+      "val_bpb": 3.0134784160965746
+    },
+    {
+      "step": 250,
+      "val_bpb": 1.9667613874504504
+    },
+    {
+      "step": 500,
+      "val_bpb": 1.8882771984536255
+    },
+    {
+      "step": 750,
+      "val_bpb": 1.8918822865272893
+    },
+    {
+      "step": 1000,
+      "val_bpb": 1.8384698464063984
+    },
+    {
+      "step": 1250,
+      "val_bpb": 1.8419946284844417
+    },
+    {
+      "step": 1500,
+      "val_bpb": 1.7995062455042845
+    },
+    {
+      "step": 1750,
+      "val_bpb": 1.7415751009575278
+    },
+    {
+      "step": 2000,
+      "val_bpb": 1.7771581178784641
+    },
+    {
+      "step": 2250,
+      "val_bpb": 1.7423395000881379
+    },
+    {
+      "step": 2500,
+      "val_bpb": 1.7274343274753285
+    },
+    {
+      "step": 2750,
+      "val_bpb": 1.6931778516543454
+    },
+    {
+      "step": 3000,
+      "val_bpb": 1.6810413367621666
+    },
+    {
+      "step": 3250,
+      "val_bpb": 1.662758021904533
+    },
+    {
+      "step": 3500,
+      "val_bpb": 1.632533802367026
+    },
+    {
+      "step": 3750,
+      "val_bpb": 1.584892813073276
+    },
+    {
+      "step": 4000,
+      "val_bpb": 1.5514092824601395
+    },
+    {
+      "step": 4250,
+      "val_bpb": 1.5405332461343546
+    },
+    {
+      "step": 4500,
+      "val_bpb": 1.5273728297980151
+    },
+    {
+      "step": 4750,
+      "val_bpb": 1.503606867263031
+    },
+    {
+      "step": 5000,
+      "val_bpb": 1.4790330969511556
+    }
+  ],
+  "production_baseline": true,
+  "baseline_schedules": {
+    "lr": "linear_warmdown_50pct",
+    "momentum": "warmup_0.85_to_0.95_over_300",
+    "weight_decay": "linear_decay_to_0"
+  },
+  "compound_testing": true
+}

@@ -1,0 +1,106 @@
+{
+  "mutation": "H73_solo",
+  "features": [
+    "H73"
+  ],
+  "valid": true,
+  "failure_type": null,
+  "final_validation_bpb": 1.4998696541222485,
+  "best_validation_bpb": 1.4998696541222485,
+  "mean_step_time_ms": 28.005482017534085,
+  "total_time_s": 144.12327252299292,
+  "steps_completed": 5000,
+  "curve": [
+    {
+      "step": 0,
+      "val_bpb": 3.0134784160965746
+    },
+    {
+      "step": 250,
+      "val_bpb": 1.9534584008414806
+    },
+    {
+      "step": 500,
+      "val_bpb": 1.9045215278042136
+    },
+    {
+      "step": 750,
+      "val_bpb": 1.8609878103607944
+    },
+    {
+      "step": 1000,
+      "val_bpb": 1.845505845360522
+    },
+    {
+      "step": 1250,
+      "val_bpb": 1.8176998943769433
+    },
+    {
+      "step": 1500,
+      "val_bpb": 1.7845511529482516
+    },
+    {
+      "step": 1750,
+      "val_bpb": 1.7251838604696814
+    },
+    {
+      "step": 2000,
+      "val_bpb": 1.7543908255119898
+    },
+    {
+      "step": 2250,
+      "val_bpb": 1.7648715718525754
+    },
+    {
+      "step": 2500,
+      "val_bpb": 1.7396014997239435
+    },
+    {
+      "step": 2750,
+      "val_bpb": 1.7130484307936595
+    },
+    {
+      "step": 3000,
+      "val_bpb": 1.691297985966325
+    },
+    {
+      "step": 3250,
+      "val_bpb": 1.6576613042230275
+    },
+    {
+      "step": 3500,
+      "val_bpb": 1.6375563183937942
+    },
+    {
+      "step": 3750,
+      "val_bpb": 1.5966702570694964
+    },
+    {
+      "step": 4000,
+      "val_bpb": 1.5583614484661326
+    },
+    {
+      "step": 4250,
+      "val_bpb": 1.5471183377752311
+    },
+    {
+      "step": 4500,
+      "val_bpb": 1.5304163185104143
+    },
+    {
+      "step": 4750,
+      "val_bpb": 1.507832563326498
+    },
+    {
+      "step": 5000,
+      "val_bpb": 1.4998696541222485
+    }
+  ],
+  "production_baseline": true,
+  "baseline_schedules": {
+    "lr": "linear_warmdown_50pct",
+    "momentum": "warmup_0.85_to_0.95_over_300",
+    "weight_decay": "linear_decay_to_0"
+  },
+  "compound_testing": true
+}
