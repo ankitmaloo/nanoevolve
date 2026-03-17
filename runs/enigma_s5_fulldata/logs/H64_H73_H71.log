@@ -1,0 +1,135 @@
+[ENIGMA] Patched MuonAdamW._step_muon with faithful H64 Nesterov blend schedule
+[ENIGMA] Patched adamw_step_fused with combined H71+H73
+=== ENIGMA Stage 5 Production — H64_H73_H71 ===
+Steps: 20000, Depth: 12, Eval every: 250
+Features: ['H64', 'H71', 'H73']
+Scaling the LR for the AdamW parameters ∝1/√(768/768) = 1.000000
+  step     0: val_bpb=3.421167
+W0317 07:44:48.472000 89963 nanochat/.venv/lib/python3.10/site-packages/torch/_inductor/codecache.py:1021] [0/1] fx graph cache unable to load compiled graph
+W0317 07:44:48.472000 89963 nanochat/.venv/lib/python3.10/site-packages/torch/_inductor/codecache.py:1021] [0/1] Traceback (most recent call last):
+W0317 07:44:48.472000 89963 nanochat/.venv/lib/python3.10/site-packages/torch/_inductor/codecache.py:1021] [0/1]   File "/data/nanoe/nanochat/.venv/lib/python3.10/site-packages/torch/_inductor/codecache.py", line 1017, in iterate_over_candidates
+W0317 07:44:48.472000 89963 nanochat/.venv/lib/python3.10/site-packages/torch/_inductor/codecache.py:1021] [0/1]     with open(os.path.join(subdir, path), "rb") as f:
+W0317 07:44:48.472000 89963 nanochat/.venv/lib/python3.10/site-packages/torch/_inductor/codecache.py:1021] [0/1] FileNotFoundError: [Errno 2] No such file or directory: '/tmp/torchinductor_ubuntu/aotautograd/a7xix7pd53566dv7mjgat7jw2qhckj7j5ifjrj3q3drlwwrqz64d/.89975.139667700351424.tmp'
+  step     0: train_bpb=15.1858 (11618ms)
+  step   250: val_bpb=2.264680
+  step   500: val_bpb=2.152437
+  step   500: train_bpb=9.5843 (30ms)
+  step   750: val_bpb=2.125414
+  step  1000: val_bpb=2.081977
+  step  1000: train_bpb=9.2170 (30ms)
+  step  1250: val_bpb=2.081414
+  step  1500: val_bpb=2.084522
+  step  1500: train_bpb=9.6355 (29ms)
+  step  1750: val_bpb=2.028579
+  step  2000: val_bpb=2.052347
+  step  2000: train_bpb=9.3291 (29ms)
+  step  2250: val_bpb=2.056604
+  step  2500: val_bpb=2.044253
+  step  2500: train_bpb=8.5735 (29ms)
+  step  2750: val_bpb=2.020484
+  step  3000: val_bpb=2.010957
+  step  3000: train_bpb=8.6451 (31ms)
+  step  3250: val_bpb=2.001980
+  step  3500: val_bpb=1.991122
+  step  3500: train_bpb=8.3479 (30ms)
+  step  3750: val_bpb=2.006015
+  step  4000: val_bpb=1.983895
+  step  4000: train_bpb=8.8185 (30ms)
+  step  4250: val_bpb=1.968633
+  step  4500: val_bpb=1.989940
+  step  4500: train_bpb=8.9356 (29ms)
+  step  4750: val_bpb=1.968081
+  step  5000: val_bpb=1.983720
+  step  5000: train_bpb=8.2678 (30ms)
+  step  5250: val_bpb=1.974947
+  step  5500: val_bpb=1.972879
+  step  5500: train_bpb=8.5790 (29ms)
+  step  5750: val_bpb=1.961515
+  step  6000: val_bpb=1.954026
+  step  6000: train_bpb=8.6101 (29ms)
+  step  6250: val_bpb=1.937579
+  step  6500: val_bpb=1.976229
+  step  6500: train_bpb=7.5630 (30ms)
+  step  6750: val_bpb=1.944288
+  step  7000: val_bpb=1.945933
+  step  7000: train_bpb=8.5972 (31ms)
+  step  7250: val_bpb=1.932576
+  step  7500: val_bpb=1.940636
+  step  7500: train_bpb=8.6176 (30ms)
+  step  7750: val_bpb=1.927962
+  step  8000: val_bpb=1.947797
+  step  8000: train_bpb=7.9432 (29ms)
+  step  8250: val_bpb=1.940313
+  step  8500: val_bpb=1.928352
+  step  8500: train_bpb=8.5291 (30ms)
+  step  8750: val_bpb=1.937325
+  step  9000: val_bpb=1.938119
+  step  9000: train_bpb=7.8165 (31ms)
+  step  9250: val_bpb=1.971425
+  step  9500: val_bpb=1.934047
+  step  9500: train_bpb=7.9671 (30ms)
+  step  9750: val_bpb=1.939428
+  step 10000: val_bpb=1.923682
+  step 10000: train_bpb=7.9265 (29ms)
+  step 10250: val_bpb=1.920039
+  step 10500: val_bpb=1.912783
+  step 10500: train_bpb=7.5759 (29ms)
+  step 10750: val_bpb=1.895352
+  step 11000: val_bpb=1.907072
+  step 11000: train_bpb=7.8742 (31ms)
+  step 11250: val_bpb=1.890828
+  step 11500: val_bpb=1.922101
+  step 11500: train_bpb=8.5298 (31ms)
+  step 11750: val_bpb=1.915819
+  step 12000: val_bpb=1.897528
+  step 12000: train_bpb=7.8439 (29ms)
+  step 12250: val_bpb=1.883237
+  step 12500: val_bpb=1.867368
+  step 12500: train_bpb=7.1785 (29ms)
+  step 12750: val_bpb=1.865540
+  step 13000: val_bpb=1.876828
+  step 13000: train_bpb=7.7775 (31ms)
+  step 13250: val_bpb=1.868341
+  step 13500: val_bpb=1.869719
+  step 13500: train_bpb=7.8078 (30ms)
+  step 13750: val_bpb=1.876226
+  step 14000: val_bpb=1.848948
+  step 14000: train_bpb=7.7868 (29ms)
+  step 14250: val_bpb=1.862050
+  step 14500: val_bpb=1.862473
+  step 14500: train_bpb=8.6586 (31ms)
+  step 14750: val_bpb=1.802967
+  step 15000: val_bpb=1.836305
+  step 15000: train_bpb=7.7533 (29ms)
+  step 15250: val_bpb=1.811948
+  step 15500: val_bpb=1.804786
+  step 15500: train_bpb=8.0643 (30ms)
+  step 15750: val_bpb=1.814201
+  step 16000: val_bpb=1.816134
+  step 16000: train_bpb=7.4934 (30ms)
+  step 16250: val_bpb=1.792871
+  step 16500: val_bpb=1.824871
+  step 16500: train_bpb=7.1099 (29ms)
+  step 16750: val_bpb=1.800706
+  step 17000: val_bpb=1.781313
+  step 17000: train_bpb=7.4348 (29ms)
+  step 17250: val_bpb=1.777328
+  step 17500: val_bpb=1.776896
+  step 17500: train_bpb=6.5536 (31ms)
+  step 17750: val_bpb=1.780007
+  step 18000: val_bpb=1.758871
+  step 18000: train_bpb=7.3344 (30ms)
+  step 18250: val_bpb=1.764870
+  step 18500: val_bpb=1.774405
+  step 18500: train_bpb=8.0212 (30ms)
+  step 18750: val_bpb=1.752861
+  step 19000: val_bpb=1.748542
+  step 19000: train_bpb=8.0386 (29ms)
+  step 19250: val_bpb=1.751609
+  step 19500: val_bpb=1.734454
+  step 19500: train_bpb=6.7098 (29ms)
+  step 19750: val_bpb=1.724464
+  step 20000: val_bpb=1.724238
+
+Saved results to runs/enigma_s5_fulldata/results/H64_H73_H71.json
+Final BPB: 1.724238

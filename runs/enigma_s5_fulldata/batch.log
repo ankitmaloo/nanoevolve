@@ -1,0 +1,24 @@
+=== Launching H64_H73_H71 (code=H64_H73_H71) on GPU 0 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== Launching H504 (code=H504) on GPU 1 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== Launching H64_H60_H73 (code=H64_H60_H73) on GPU 2 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== Launching H64_H60_H71 (code=H64_H60_H71) on GPU 3 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== Launching H73_solo (code=H73) on GPU 4 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== Launching H60_solo (code=H60) on GPU 5 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== Launching H60_H73_H71 (code=H60_H73_H71) on GPU 6 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== Launching H517 (code=H517) on GPU 7 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== Launching H64_H60_H73_H71 (code=H64_H60_H73_H71) on GPU 8 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== Launching none (code=none) on GPU 9 at Tue Mar 17 07:44:33 UTC 2026 ===
+=== All 10 launched, waiting... ===
+=== ALL DONE at Tue Mar 17 07:58:23 UTC 2026 ===
+
+=== RESULTS ===
+H504: FAILED
+H517: FAILED
+H60_H73_H71: FAILED
+H60_solo: FAILED
+H64_H60_H71: FAILED
+H64_H60_H73: FAILED
+H64_H60_H73_H71: FAILED
+H64_H73_H71: FAILED
+H73_solo: FAILED
+none: FAILED

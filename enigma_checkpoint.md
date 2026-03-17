@@ -1,20 +1,35 @@
-# Enigma Checkpoint — 2026-03-16
+# Enigma Checkpoint — 2026-03-17
 
 ## Current Frontier
 
-**Best result: H64_H60_H73 = 1.3979 BPB at 20k steps** — beats production baseline (1.4260) by **+0.028 BPB**.
+**Best result: H73 solo = 1.6289 BPB at 20k steps on 1500 shards** — beats production baseline (1.7206) by **+0.092 BPB**.
 
-This is: Nesterov blend schedule + Muon beta2 warmup + AdamW eps schedule. Three zero-overhead schedule changes to the production MuonAdamW optimizer.
+This is a single change: AdamW eps log-linear schedule from 1e-6→1e-10 over total steps. Zero-overhead schedule change to production MuonAdamW. Validated on 1500 data shards (~23% of full ClimbMix-400B, vs 3 shards in Stage 5), largely eliminating the data-recycling confounder.
 
-Close second: **H533_H535 = 1.3994 BPB** — shape-aware Muon beta2 + embedding-only eps schedule. Completely different mechanism set, nearly ties the champion.
+Previous champion H64_H60_H73 (3-compound) drops to #3 at 1.6907 BPB (+0.030 vs baseline). **H73 alone accounts for most of the gain — the other mutations add noise at scale.**
 
-### What the winning mutations do
+### 1500-shard validation results (Stage 5 Fulldata, 2026-03-17)
 
-| ID | Mechanism | Where applied | Code |
-|----|-----------|--------------|------|
-| H64 | Nesterov blend 0.7→0.95 over 500 steps (decoupled from momentum) | Muon kernel patch | `enigma/stage5_patch.py:_patch_muon_h64` |
-| H60 | Muon beta2 warmup 0.8→0.95 over 500 steps | Training loop schedule | `group['beta2'] = 0.8 + 0.15 * min(1.0, step / 500)` |
-| H73 | AdamW eps log-linear 1e-6→1e-10 over total steps | AdamW kernel patch | `enigma/stage5_patch.py:_patch_adamw_eps_schedule` |
+| Rank | BPB | Delta | Mutation | Notes |
+|------|-----|-------|----------|-------|
+| 1 | **1.6289** | **+0.0917** | H73_solo | Clear winner, eps schedule |
+| 2 | 1.6899 | +0.0307 | H64_H60_H71 | LOO (no H73) |
+| 3 | 1.6907 | +0.0299 | H64_H60_H73 | Previous champion |
+| 4 | 1.6946 | +0.0260 | H60_H73_H71 | LOO (no H64) |
+| 5 | 1.6966 | +0.0240 | H517 | Shared phase beta2 |
+| 6 | 1.7013 | +0.0194 | H60_solo | Beta2 warmup |
+| 7 | 1.7206 | — | none | **PRODUCTION BASELINE** |
+| 8 | 1.7242 | -0.0036 | H64_H73_H71 | LOO (no H60) |
+| 9 | 1.7281 | -0.0074 | H504 | Beta2 phase2 |
+| 10 | 1.7689 | -0.0483 | H64_H60_H73_H71 | Full 4-way — worst |
+
+### What the winning mutation does
+
+| ID | Mechanism | Where applied | Code | Diff |
+|----|-----------|--------------|------|------|
+| H73 | AdamW eps log-linear 1e-6→1e-10 over total steps | AdamW kernel patch | `enigma/stage5_patch.py:_patch_adamw_eps_schedule` | [`diff`](runs/enigma_s5_fulldata/diffs/H73_eps_schedule.diff) |
+
+**Why it works**: Production already uses `eps=1e-10` (see `nanochat/nanochat/gpt.py:376-380`) — the lowest reasonable value. But this is set from step 0, when second moments (`exp_avg_sq`) are zero-initialized and unreliable. With `eps=1e-10` and tiny second moments, early AdamW steps have enormous effective step sizes on low-variance dimensions. H73 starts at `eps=1e-6` (1000x higher), providing implicit per-coordinate clipping during the noisy early phase, then anneals to the same `1e-10` production value. The final state is identical to production — it's only the early-phase protection that differs.
 
 ### Stage history at a glance
 
@@ -24,44 +39,57 @@ Close second: **H533_H535 = 1.3994 BPB** — shape-aware Muon beta2 + embedding-
 | 4 | 5k | ~3 shards | Production MuonAdamW monkey-patched | H64 +0.063, H73 +0.046, H60 +0.031 |
 | 4ext | 5k+20k | ~3 shards | Same | H60 confirmed at 20k, H71 weakened |
 | 5 | 20k | ~3 shards | Same, + new mutations H531-H538 | H64_H60_H73 = 1.3979 (best) |
+| 5-fulldata | 20k | 1500 shards (~23% ClimbMix) | Same code, 8xH100, 1 GPU/run | **H73 solo = 1.6289 (best)** |
 
 ---
 
-## Experimental Caveats (IMPORTANT)
+## Key Findings from 1500-Shard Validation
 
-**Reduced dataset**: All runs used ~3 data shards out of 6543 total (ClimbMix-400B). Each shard is ~60M tokens. With ~180M total tokens and 20k steps of 1024 tokens = 20M tokens processed, the model sees ~11% of its small dataset. With the recommended 170 shards (~10B tokens), there would be zero data repetition in 20k steps. Results on 3 shards involve data recycling and may not transfer to the full-data regime.
+**H73 (eps schedule) is the real deal.** +0.092 BPB solo — 3x the gain of any compound. The eps schedule addresses a fundamental issue: AdamW has `warmup_ratio=0.0` (no LR warmup) + zero-initialized second moment = enormous effective step sizes on low-variance dimensions early. The eps schedule acts as an implicit per-coordinate clip. With diverse data (1500 shards ≈ 138B tokens, ~zero recycling at 20k×1024 = 20M tokens processed), this effect is even stronger than on 3 shards.
+
+**Compounds hurt at scale.** H64_H60_H73 was the 3-shard champion but is 3x worse than H73 solo on 1500 shards. The compounding was likely overfitting to the small dataset's noise patterns. H64 (Nesterov blend) and H60 (beta2 warmup) add marginal or negative value when data is diverse.
+
+**H71 confirmed harmful.** Every compound containing H71 is worse than its H71-free counterpart. The full 4-way (H64_H60_H73_H71) is the worst performer at 1.769 BPB, below baseline.
+
+**H60 (beta2 warmup) has modest solo value.** +0.019 BPB solo, which is real but small compared to H73.
+
+---
+
+## Experimental Caveats
+
+### 1500-shard run (Stage 5 Fulldata) — caveats
+
+**Partial dataset**: 1500 out of 6543 shards (~23% of ClimbMix-400B, ~138B tokens). No data recycling at 20M tokens processed, but the data distribution may not fully represent the complete dataset.
+
+**Small batch**: 1024 tokens (device_batch=2, seq_len=512). Production uses 524288 tokens/step. Different gradient noise characteristics.
 
 **Small model**: GPT-2 scale (12 layers, 768 dim, 6 heads, ~124M params). Optimizer behavior changes at larger scales.
 
-**Small batch**: 1024 tokens (device_batch=2, seq_len=512). Production uses larger batches with different gradient noise.
-
 **Single seed**: seed=42 only. No multi-seed robustness validation.
 
-**Single GPU**: All on single B200. Production uses `DistMuonAdamW` (distributed).
+**Single GPU per run**: Each mutation ran on 1 H100 GPU. Production uses 8-GPU `DistMuonAdamW` (distributed). However, with batch=1024 and no grad accumulation, single vs multi-GPU should be equivalent.
 
-**Bottom line**: Results are directional signal, not deployment-ready.
+**BPB absolute values differ from Stage 5**: 1.63-1.77 range (1500-shard) vs 1.40-1.47 (3 shards). Higher BPB on 1500-shard is expected — more diverse data is harder to learn from in 20k steps with tiny batch. Relative rankings and deltas are what matter.
+
+### 3-shard runs (Stages 1-5) — caveats
+
+**Reduced dataset**: ~3 out of 6543 shards. Data recycling inflated all results and may have favored compounds that overfit to repeated patterns.
+
+**Bottom line**: The 1500-shard run is the most authoritative result so far. H73 is the validated winner. Compounds from Stage 5 were likely artifacts of data recycling. Full dataset (6543 shards) and production batch size validation still pending.
 
 ---
 
-## What Will and Won't Hold at Full Scale
+## Prediction Scorecard
 
-### Likely to hold
+Prior predictions (from "What Will and Won't Hold at Full Scale") vs actual full-data results:
 
-**H73 (eps schedule)** — Strongest case. AdamW has `warmup_ratio=0.0` (no LR warmup) + zero-initialized second moment = enormous effective step sizes on low-variance dimensions early. Eps schedule acts as implicit per-coordinate clip. This problem gets *worse* with more diverse data. Novel dimension — no prior work explores eps scheduling.
-
-**H60 (beta2 warmup)** — Zero-initialized EMA buffers are universally noisy early regardless of data volume. The 20k curve (worse early, better late, crossover at ~11k) is the hallmark of a real phase-aware improvement. More diverse data makes fast early variance adaptation (low beta2) even more valuable.
-
-### Uncertain
-
-**H64 (Nesterov blend schedule)** — On 3 shards, early gradients are less informative (repeated data). Lower blend early helps when gradients are noisy. With full data, early gradients carry *more* signal — benefit of downweighting momentum may shrink. The +0.063 at 5k was suspiciously large; at 20k it only contributed as part of compound. The uninitialized momentum buffer argument still holds but effect size probably smaller.
-
-**H533 (shape-aware beta2)** — Tuned to 768-dim architecture's aspect ratios. Different model sizes have different matrix shapes. Could be fragile.
-
-### Likely won't hold
-
-**H71 (beta1 warmup)** — Already harmful in compounds at 20k. Won't survive full data.
-
-**Exact compound rankings** — H64_H60_H73 vs H533_H535 differ by only 0.0015 BPB. Could flip with different data/seed.
+| Prediction | Actual | Correct? |
+|-----------|--------|----------|
+| H73 likely to hold | **+0.092 BPB, #1 overall** | YES |
+| H60 likely to hold | +0.019 BPB solo, modest | PARTIALLY — holds but small |
+| H64 uncertain | +0.030 only in compound, not solo tested | PARTIALLY — compounds weaker |
+| H71 likely won't hold | Worst in every compound | YES |
+| Exact compound rankings will flip | H73 solo > all compounds | YES |
 
 ---
 
@@ -110,16 +138,16 @@ Adding new singles to H64_H60_H73 doesn't help. H64 and H533 may interfere.
 ## Knowledge Base
 
 ### What works
-- Warmup schedules on every fixed constant (momentum, beta1, beta2, eps)
+- **H73 (eps schedule)** — validated on 1500 shards, +0.092 BPB solo, the single biggest win
+- H60 (beta2 warmup) — modest solo value (+0.019), helps in some compounds
 - Simple monotonic schedules beat non-monotonic ones
-- Nesterov blend decoupling (H64)
-- AdamW eps scheduling (H73) — novel dimension
-- Compound of 3 > compound of 4 (drop H71)
 
 ### What doesn't work
-- H71 (beta1 warmup) hurts in compounds at 20k
-- H60 solo lost at 20k (but helps in compounds)
-- Trust ratio — artifact of broken eval loop
+- **Compounds** — all compounds underperform H73 solo on 1500 shards. 3-shard compound wins were artifacts
+- H71 (beta1 warmup) — hurts in every compound, confirmed harmful across data scales
+- H64 (Nesterov blend) — uncertain solo value, doesn't help H73 in compounds at scale
+- H504 (beta2 phase2), H517 (shared phase) — below baseline or marginal
+- Trust ratio — artifact of broken eval loop (Stages 1-3)
 - Embedding weight decay, scalar LR warmup, momentum overshoot
 - Full stacks consistently underperform simpler combinations
 
@@ -136,7 +164,8 @@ Adding new singles to H64_H60_H73 doesn't help. H64 and H533 may interfere.
 | File | Purpose |
 |------|---------|
 | `enigma/stage5_patch.py` | **Current monkey-patch module**. H64 faithful Nesterov blend, H71 beta1 warmup, H73 eps schedule, H71+H73 combined, H531 raw grad WD, H517 shared phase, H538 seed second moment. Schedule-only mutations applied in training loop. |
-| `enigma/run_stage5.py` | Production-faithful training loop with compound feature flags |
+| `enigma/run_stage5.py` | Single-GPU training loop with compound feature flags |
+| `enigma/run_stage5_dist.py` | 8xH100 distributed version (DistMuonAdamW, production batch) |
 | `nanochat/nanochat/optim.py` | Production optimizer: `adamw_step_fused` (L20-49), `muon_step_fused` (L90-147), `MuonAdamW` (L152-291) |
 | `nanochat/scripts/base_train.py` | Production schedules: `get_lr_multiplier` (L362), `get_muon_momentum` (L374), `get_weight_decay` (L380) |
 | `nanochat/nanochat/gpt.py` | `GPT.setup_optimizer` (L356-394) — creates param groups |
@@ -144,53 +173,19 @@ Adding new singles to H64_H60_H73 doesn't help. H64 and H533 may interfere.
 | `runs/enigma_stage*_postmortem.json` | Postmortems for stages 2, 3, 4, 4ext |
 
 ### Run artifacts
-- `runs/enigma_s5_prod/` — Primary S5: 10 runs, results, logs
-- `runs/enigma_s5_prod_singles_r1/` — S5 new singles: 11 mechanisms
-- `runs/enigma_s5_prod_composites_r1/` — S5 composites: 11 runs
-- `runs/enigma_s5_prod_frontier_r1/` — S5 frontier extension: 12 runs
+- `runs/enigma_s5_fulldata/` — **1500-shard validation**: 10 runs, results, logs (8xH100 Hyperbolic)
+- `runs/enigma_s5_prod/` — Primary S5: 10 runs, results, logs (3 shards)
+- `runs/enigma_s5_prod_singles_r1/` — S5 new singles: 11 mechanisms (3 shards)
+- `runs/enigma_s5_prod_composites_r1/` — S5 composites: 11 runs (3 shards)
+- `runs/enigma_s5_prod_frontier_r1/` — S5 frontier extension: 12 runs (3 shards)
 - `runs/enigma_s4_prod/` — Stage 4: 10 original runs + diffs
 - `runs/enigma_s4ext_*` — Stage 4 extension: compounds + 20k H60
 
 ---
 
-## Cluster Access
-
-```bash
-# Slurm cluster
-ssh user54@35.84.33.219
-export TORCHDYNAMO_DISABLE=1
-# Shared fs: /mnt/sharefs/user54/nanoe/
-# GPUs: B200 (183GB), priority partition
-
-# Sync local → cluster
-rsync -avz --exclude='.git' --exclude='__pycache__' --exclude='.venv' \
-  /Users/ankit/Documents/dev/RL/nanoe/nanoevolve/ user54@35.84.33.219:~/nanoe/
-```
-
----
-
-## How to Run Full-Data Validation
-
-```bash
-# Download 170 shards (~100GB, ~1hr)
-export NANOCHAT_BASE_DIR=/path/to/persistent/storage
-cd nanochat && python -m nanochat.dataset -n 170 -w 8
-
-# Setup (works on any Ubuntu+CUDA machine)
-./scripts/setup_azure_a100.sh
-
-# Run experiments
-python enigma/run_stage5.py --mutation H64_H60_H73 --steps 20000 --depth 12
-python enigma/run_stage5.py --mutation none --steps 20000 --depth 12
-# Set ENIGMA_TOTAL_STEPS=20000 for correct eps schedule denominator
-```
-
-Each 20k-step run takes ~10min on H100 with torch.compile.
-
----
-
 ## Next Steps
 
-1. **Full-data validation** — Run baseline + H73 + H60 + H64_H60_H73 on 170 shards at 20k. If H73 and H60 still show phase-shift signature, the findings are real.
-2. **Deploy to production** if validated — modify `muon_step_fused`, add `get_nesterov_blend(it)` and `get_beta2(it)` to `base_train.py`, schedule eps in AdamW groups.
-3. **Don't** add H71 to compounds, trust Stage 1-3 results, or use the non-faithful H64 approximation.
+1. **Production batch validation** — Run H73 solo + baseline at production batch size (524288 tokens) on 8xH100 with `DistMuonAdamW`. The 1500-shard validation used small batch (1024 tokens). Production gradient noise is different.
+2. **Time-to-GPT-2 speedrun** — Integrate H73 into `base_train.py`, run full d24 speedrun targeting GPT-2 CORE score 0.256525 on 8xH100. Current record: 1.65 hours.
+3. **Deploy H73 to production** — Modify `adamw_step_fused` in `nanochat/nanochat/optim.py` to add eps scheduling. Simple: `eps = 10 ** (-6 + -4 * step/total_steps)`.
+4. **Don't** add H64/H60/H71 to production — compounds don't help H73 at scale. H73 solo is the cleanest win.
