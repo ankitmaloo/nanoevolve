@@ -61,7 +61,7 @@ Previous champion H64_H60_H73 (3-compound) drops to #3 at 1.6907 BPB (+0.030 vs 
 
 **Partial dataset**: 1500 out of 6543 shards (~23% of ClimbMix-400B, ~138B tokens). No data recycling at 20M tokens processed, but the data distribution may not fully represent the complete dataset.
 
-**Small batch**: 1024 tokens (device_batch=2, seq_len=512). Production uses 524288 tokens/step. Different gradient noise characteristics.
+**Small batch (512x below production)**: 1024 tokens (device_batch=2, seq_len=512). Production uses 524,288 tokens/step — 512x larger. Larger batch means lower gradient variance per step, so `exp_avg_sq` fills in with accurate estimates faster. The "dangerous early phase" where eps dominates the denominator is shorter at large batch. H73's benefit should still be positive (second moments are still zero-initialized regardless of batch size) but the magnitude may shrink. This is the single biggest remaining uncertainty.
 
 **Small model**: GPT-2 scale (12 layers, 768 dim, 6 heads, ~124M params). Optimizer behavior changes at larger scales.
 
@@ -169,8 +169,25 @@ Adding new singles to H64_H60_H73 doesn't help. H64 and H533 may interfere.
 | `nanochat/nanochat/optim.py` | Production optimizer: `adamw_step_fused` (L20-49), `muon_step_fused` (L90-147), `MuonAdamW` (L152-291) |
 | `nanochat/scripts/base_train.py` | Production schedules: `get_lr_multiplier` (L362), `get_muon_momentum` (L374), `get_weight_decay` (L380) |
 | `nanochat/nanochat/gpt.py` | `GPT.setup_optimizer` (L356-394) — creates param groups |
+| `runs/enigma_s5_fulldata/diffs/` | **Annotated diffs for all 1500-shard mutations** (see below) |
 | `runs/enigma_s4_prod/diffs/` | Annotated diffs for all Stage 4 mutations |
-| `runs/enigma_stage*_postmortem.json` | Postmortems for stages 2, 3, 4, 4ext |
+| `runs/enigma_stage*_postmortem.json` | Postmortems for stages 2, 3, 4, 4ext, 5, 5-fulldata |
+
+### Diffs for 1500-shard validated mutations
+
+| Diff | Mutation | Result | Type |
+|------|----------|--------|------|
+| [`H73_eps_schedule.diff`](runs/enigma_s5_fulldata/diffs/H73_eps_schedule.diff) | H73 solo | **+0.092 #1** | AdamW kernel |
+| [`H60_beta2_warmup.diff`](runs/enigma_s5_fulldata/diffs/H60_beta2_warmup.diff) | H60 solo | +0.019 #6 | Training loop |
+| [`H64_nesterov_blend.diff`](runs/enigma_s5_fulldata/diffs/H64_nesterov_blend.diff) | H64 | in compounds only | Muon kernel |
+| [`H71_beta1_warmup.diff`](runs/enigma_s5_fulldata/diffs/H71_beta1_warmup.diff) | H71 | HARMFUL | AdamW kernel |
+| [`H504_beta2_phase2.diff`](runs/enigma_s5_fulldata/diffs/H504_beta2_phase2.diff) | H504 | -0.007 #9 | Training loop |
+| [`H517_shared_phase.diff`](runs/enigma_s5_fulldata/diffs/H517_shared_phase.diff) | H517 | +0.024 #5 | AdamW kernel + loop |
+| [`H64_H60_H73.diff`](runs/enigma_s5_fulldata/diffs/H64_H60_H73.diff) | H64+H60+H73 | +0.030 #3 | Combined |
+| [`H64_H60_H71.diff`](runs/enigma_s5_fulldata/diffs/H64_H60_H71.diff) | H64+H60+H71 | +0.031 #2 | Combined |
+| [`H60_H73_H71.diff`](runs/enigma_s5_fulldata/diffs/H60_H73_H71.diff) | H60+H73+H71 | +0.026 #4 | Combined |
+| [`H64_H73_H71.diff`](runs/enigma_s5_fulldata/diffs/H64_H73_H71.diff) | H64+H73+H71 | -0.004 #8 | Combined |
+| [`H64_H60_H73_H71.diff`](runs/enigma_s5_fulldata/diffs/H64_H60_H73_H71.diff) | Full 4-way | -0.048 #10 | Combined |
 
 ### Run artifacts
 - `runs/enigma_s5_fulldata/` — **1500-shard validation**: 10 runs, results, logs (8xH100 Hyperbolic)

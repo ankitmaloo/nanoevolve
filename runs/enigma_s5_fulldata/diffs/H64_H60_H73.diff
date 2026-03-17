@@ -1,0 +1,44 @@
+## H64_H60_H73: Previous 3-Shard Champion (#3: +0.030 BPB on 1500 shards)
+##
+## Compound of: H64 (Nesterov blend) + H60 (beta2 warmup) + H73 (eps schedule)
+## 3-shard result: 1.3979 BPB (#1, +0.028 vs baseline) — was the champion
+## 1500-shard result: 1.6907 BPB (#3, +0.030 vs baseline) — beaten by H73 solo
+## Takeaway: H73 does the heavy lifting. H64+H60 add ~0 marginal value at scale.
+##
+## Components:
+##   H64 — Muon kernel: decoupled Nesterov blend 0.7→0.95 (see H64_nesterov_blend.diff)
+##   H60 — Training loop: Muon beta2 warmup 0.8→0.95 (see H60_beta2_warmup.diff)
+##   H73 — AdamW kernel: eps schedule 1e-6→1e-10 (see H73_eps_schedule.diff)
+##
+## Patch dispatch logic (enigma/stage5_patch.py):
+##   - H64 in features → _patch_muon_h64(optim_module) [replaces muon_step_fused]
+##   - H73 in features → _patch_adamw_eps_schedule(optim_module) [replaces adamw_step_fused]
+##   - H60 applied in training loop: group["beta2"] = get_h60_beta2(step)
+
+--- a/nanochat/nanochat/optim.py (Muon kernel — H64)
++++ b/nanochat/nanochat/optim.py (Muon kernel — H64)
+@@ muon_step_fused
++    # H64: decoupled Nesterov blend (new arg: nesterov_blend_t)
+     momentum = momentum_t.to(stacked_grads.dtype)
++    nesterov_blend = nesterov_blend_t.to(stacked_grads.dtype)
+     momentum_buffer.lerp_(stacked_grads, 1 - momentum)
+-    g = stacked_grads.lerp_(momentum_buffer, momentum)
++    g = stacked_grads.lerp_(momentum_buffer, nesterov_blend)
+
+--- a/nanochat/nanochat/optim.py (AdamW kernel — H73)
++++ b/nanochat/nanochat/optim.py (AdamW kernel — H73)
+@@ adamw_step_fused
++    frac = (step_t / total_steps).clamp(max=1.0)
++    eps = 10.0 ** (-6.0 + (-4.0 * frac))
+     # ... standard AdamW ...
+-    denom = (exp_avg_sq / bias2).sqrt() + eps_t
++    denom = (exp_avg_sq / bias2).sqrt() + eps
+
+--- a/nanochat/scripts/base_train.py (Training loop — H60 + H64)
++++ b/nanochat/scripts/base_train.py (Training loop — H60 + H64)
+ # Inside training loop:
++blend = 0.7 + (0.95 - 0.7) * min(1.0, step / 500.0)
++nesterov_blend_t.fill_(blend)
+ for group in optimizer.param_groups:
+     if group["kind"] == "muon":
++        group["beta2"] = 0.8 + (0.95 - 0.8) * min(1.0, step / 500.0)  # H60

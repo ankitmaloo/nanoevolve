@@ -1,0 +1,13 @@
+## H64_H60_H71: LOO (no H73) (#2: +0.031 BPB on 1500 shards)
+##
+## Compound of: H64 (Nesterov blend) + H60 (beta2 warmup) + H71 (beta1 warmup)
+## Note: This beats H64_H60_H73 by 0.001 BPB — within noise. But H73 solo beats
+##   both by 3x. The compound structure itself is the problem.
+##
+## Components:
+##   H64 — Muon kernel: decoupled Nesterov blend (see H64_nesterov_blend.diff)
+##   H60 — Training loop: Muon beta2 warmup (see H60_beta2_warmup.diff)
+##   H71 — AdamW kernel: beta1 warmup (see H71_beta1_warmup.diff)
+##
+## Patch dispatch: H64 → _patch_muon_h64, H71 → _patch_adamw_beta1_warmup
+##   H60 applied in training loop.

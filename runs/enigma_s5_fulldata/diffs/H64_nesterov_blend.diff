@@ -1,0 +1,42 @@
+## H64: Decoupled Nesterov Blend Schedule 0.7→0.95 over 500 steps (in compounds only, not solo tested)
+##
+## Attack surface: Muon fused kernel (nanochat/nanochat/optim.py)
+## Mechanism: Production Muon uses Nesterov momentum where the blend factor equals
+##   the momentum coefficient. H64 decouples the blend factor and schedules it from
+##   0.7→0.95 over 500 steps, independent of the momentum warmup (0.85→0.95 over 300).
+##   Lower blend early = trust raw gradient more when momentum buffer is uninitialized.
+## Result: Not solo-tested on 1500 shards. In compounds, doesn't clearly help H73.
+##   On 3 shards, +0.063 BPB solo (suspiciously large, likely data-recycling artifact).
+## Monkey-patch: enigma/stage5_patch.py:_patch_muon_h64
+
+--- a/nanochat/nanochat/optim.py
++++ b/nanochat/nanochat/optim.py
+@@ muon_step_fused signature
+ def muon_step_fused(
+     stacked_grads,
+     stacked_params,
+     momentum_buffer,
+     second_momentum_buffer,
+     momentum_t,
++    nesterov_blend_t,           # NEW: separate blend factor, decoupled from momentum
+     lr_t,
+     wd_t,
+     beta2_t,
+     ns_steps,
+     red_dim,
+ ):
+     # Nesterov momentum
+     momentum = momentum_t.to(stacked_grads.dtype)
++    nesterov_blend = nesterov_blend_t.to(stacked_grads.dtype)
+     momentum_buffer.lerp_(stacked_grads, 1 - momentum)
+-    g = stacked_grads.lerp_(momentum_buffer, momentum)
++    g = stacked_grads.lerp_(momentum_buffer, nesterov_blend)  # ← blend decoupled
+     # ... rest unchanged ...
+
+## Training loop addition:
++nesterov_blend_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
++
++# Inside training loop:
++blend = 0.7 + (0.95 - 0.7) * min(1.0, step / 500.0)
++nesterov_blend_t.fill_(blend)
++# Pass nesterov_blend_t to muon_step_fused

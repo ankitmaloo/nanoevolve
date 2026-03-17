@@ -1,0 +1,28 @@
+## H504: Muon Beta2 Two-Phase Schedule (#9: -0.007 BPB on 1500 shards, BELOW BASELINE)
+##
+## Attack surface: Training loop schedule (no kernel change)
+## Mechanism: Phase 1 = H60 warmup (0.8→0.95 over 500 steps). Phase 2 = during warmdown,
+##   increase beta2 further to 0.99 for stability. Idea: slow down variance tracking as
+##   learning rate decays.
+## Result: Below baseline. The phase 2 increase to 0.99 hurts — locking in stale variance
+##   estimates during warmdown is counterproductive.
+## Note: Schedule-only — applied in training loop.
+
+--- a/nanochat/scripts/base_train.py (training loop)
++++ b/nanochat/scripts/base_train.py (training loop)
+
++def get_h504_beta2(step: int, steps: int) -> float:
++    """Two-phase Muon beta2: H60 early, then 0.95→0.99 during warmdown."""
++    if step < 500:
++        return 0.8 + (0.95 - 0.8) * min(1.0, step / 500.0)
++    warmdown_start = steps * 0.5
++    if step <= warmdown_start:
++        return 0.95
++    phase = min(1.0, (step - warmdown_start) / max(steps - warmdown_start, 1.0))
++    return 0.95 + (0.99 - 0.95) * phase
+
+ # Inside training loop:
+ for group in optimizer.param_groups:
+     if group["kind"] == "muon":
+-        pass  # beta2 stays at group default (0.95)
++        group["beta2"] = get_h504_beta2(step, num_iterations)

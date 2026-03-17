@@ -1,0 +1,22 @@
+## H60: Muon Beta2 Warmup 0.8→0.95 over 500 steps (#6: +0.019 BPB on 1500 shards)
+##
+## Attack surface: Training loop schedule (no kernel change)
+## Mechanism: Muon beta2 starts at 0.8 (faster variance tracking) and warms to
+##   production value 0.95 over 500 steps. Helps second-moment buffer adapt quickly
+##   when it's zero-initialized.
+## Result: Modest solo gain (+0.019). Helps in some compounds but not as strong as H73.
+## Note: Schedule-only — applied in training loop, not monkey-patched.
+
+--- a/nanochat/scripts/base_train.py (training loop)
++++ b/nanochat/scripts/base_train.py (training loop)
+@@ (schedule section, inside training loop)
+
++def get_h60_beta2(step: int) -> float:
++    """Muon beta2 warmup: 0.8 → 0.95 over 500 steps."""
++    return 0.8 + (0.95 - 0.8) * min(1.0, step / 500.0)
+
+ # Inside training loop, after standard schedule application:
+ for group in optimizer.param_groups:
+     if group["kind"] == "muon":
+-        pass  # beta2 stays at group default (0.95)
++        group["beta2"] = get_h60_beta2(step)

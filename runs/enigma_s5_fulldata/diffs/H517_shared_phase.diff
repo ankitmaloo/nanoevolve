@@ -1,0 +1,46 @@
+## H517: Shared Warmdown Phase for Muon Beta2 + AdamW Eps (#5: +0.024 BPB on 1500 shards)
+##
+## Attack surface: Training loop schedule (Muon beta2) + AdamW kernel patch (eps)
+## Mechanism: Uses the warmdown phase variable (0→1 during warmdown) to drive both
+##   Muon beta2 (0.8→0.95→0.99) and AdamW eps (1e-6→1e-10). One shared controller.
+##   Eps schedule only activates during warmdown (unlike H73 which schedules over all steps).
+## Result: +0.024 BPB, #5 overall. Decent but weaker than H73 because the eps schedule
+##   only kicks in at warmdown start (step 10k), missing the critical early phase.
+## Monkey-patch: enigma/stage5_patch.py:_patch_adamw_shared_phase
+
+--- a/nanochat/nanochat/optim.py
++++ b/nanochat/nanochat/optim.py
+@@ adamw_step_fused (H517 version)
+ def adamw_step_fused(p, grad, exp_avg, exp_avg_sq, step_t, lr_t,
+                      beta1_t, beta2_t, eps_t, wd_t):
++    # H517: eps schedule driven by warmdown phase only
++    warmdown_start = total_steps * 0.5
++    warmdown_span = max(total_steps - warmdown_start, 1.0)
++    phase = ((step_t - warmdown_start) / warmdown_span).clamp(min=0.0, max=1.0)
++    eps = 10.0 ** (-6.0 + (-4.0 * phase))  # 1e-6 until warmdown, then → 1e-10
++
+     p.mul_(1 - lr_t * wd_t)
+     exp_avg.lerp_(grad, 1 - beta1_t)
+     exp_avg_sq.lerp_(grad.square(), 1 - beta2_t)
+     bias1 = 1 - beta1_t ** step_t
+     bias2 = 1 - beta2_t ** step_t
+-    denom = (exp_avg_sq / bias2).sqrt() + eps_t
++    denom = (exp_avg_sq / bias2).sqrt() + eps  # ← warmdown-phase eps
+     step_size = lr_t / bias1
+     p.add_(exp_avg / denom, alpha=-step_size)
+
+--- a/nanochat/scripts/base_train.py (training loop)
++++ b/nanochat/scripts/base_train.py (training loop)
++def get_h517_beta2(step: int, steps: int) -> float:
++    """Shared warmdown-phase Muon beta2."""
++    early = 0.8 + (0.95 - 0.8) * min(1.0, step / 500.0)
++    warmdown_start = steps * 0.5
++    if step <= warmdown_start:
++        return early
++    phase = min(1.0, (step - warmdown_start) / max(steps - warmdown_start, 1.0))
++    return max(early, 0.95 + (0.99 - 0.95) * phase)
+
+ # Inside training loop:
+ for group in optimizer.param_groups:
+     if group["kind"] == "muon":
++        group["beta2"] = get_h517_beta2(step, num_iterations)

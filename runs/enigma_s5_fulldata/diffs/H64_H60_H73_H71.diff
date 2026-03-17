@@ -1,0 +1,16 @@
+## H64_H60_H73_H71: Full 4-Way (#10: -0.048 BPB on 1500 shards, WORST OVERALL)
+##
+## Compound of all four Stage 4 winners: H64 + H60 + H73 + H71
+## Result: Worst performer overall, 0.048 BPB below baseline. Consistently the worst
+##   compound across both 3-shard and 1500-shard regimes. Full stacks overfit and interfere.
+##
+## Components:
+##   H64 — Muon kernel: decoupled Nesterov blend (see H64_nesterov_blend.diff)
+##   H60 — Training loop: Muon beta2 warmup (see H60_beta2_warmup.diff)
+##   H73 + H71 — AdamW kernel: combined eps + beta1 (see H73/H71 diffs)
+##
+## Patch dispatch: H64 → _patch_muon_h64, H71+H73 → _patch_adamw_beta1_and_eps,
+##   H60 in training loop.
+##
+## Lesson: More mutations ≠ better. H71 is harmful, and stacking H64+H60 on top of
+##   H73 adds interference. Simplest (H73 solo) wins.

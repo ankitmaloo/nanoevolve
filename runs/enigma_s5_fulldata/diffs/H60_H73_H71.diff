@@ -1,0 +1,12 @@
+## H60_H73_H71: LOO (no H64) (#4: +0.026 BPB on 1500 shards)
+##
+## Compound of: H60 (beta2 warmup) + H73 (eps schedule) + H71 (beta1 warmup)
+## Note: Contains H73 (the winner) but H71 drags it down. H73 solo = +0.092.
+##
+## Components:
+##   H60 — Training loop: Muon beta2 warmup (see H60_beta2_warmup.diff)
+##   H73 — AdamW kernel: eps schedule (see H73_eps_schedule.diff)
+##   H71 — AdamW kernel: beta1 warmup (see H71_beta1_warmup.diff)
+##
+## Patch dispatch: H71+H73 → _patch_adamw_beta1_and_eps (combined kernel)
+##   H60 applied in training loop.

@@ -1,0 +1,11 @@
+## H64_H73_H71: LOO (no H60) (#8: -0.004 BPB on 1500 shards, BELOW BASELINE)
+##
+## Compound of: H64 (Nesterov blend) + H73 (eps schedule) + H71 (beta1 warmup)
+## Result: Below baseline despite containing H73. H71 is toxic enough to negate H73's gain.
+##   This is the strongest evidence that H71 should never be used.
+##
+## Components:
+##   H64 — Muon kernel: decoupled Nesterov blend (see H64_nesterov_blend.diff)
+##   H73 + H71 — AdamW kernel: combined eps schedule + beta1 warmup (see H73/H71 diffs)
+##
+## Patch dispatch: H64 → _patch_muon_h64, H71+H73 → _patch_adamw_beta1_and_eps
