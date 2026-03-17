@@ -6,6 +6,43 @@ Enigma is a systematic hypothesis-test loop for discovering optimizer improvemen
 
 ---
 
+## What "Beating BPB" Means
+
+**BPB = Bits Per Byte** — a measure of how well the model predicts the next token on held-out validation data. Lower is better.
+
+When we say H64_H60_H73 "beats production by +0.028 BPB at 20k steps", it means: **after the same number of training steps (20k), the mutated optimizer reaches a lower validation loss than the production optimizer.** This is a sample efficiency improvement — the model learns more from the same amount of data and compute.
+
+What this means practically:
+- **Better training quality**: At any given step budget, the mutated optimizer produces a model that predicts text more accurately. The same 20k steps yield a smarter model.
+- **Faster convergence**: To reach the same quality the production optimizer achieves at 20k steps, the mutated optimizer gets there earlier. The training curve is shifted left — you could stop sooner and save compute.
+- **Zero overhead**: All winning mutations are schedule changes (different hyperparameter trajectories over training). They do not add computation — step time is identical (~28ms). The improvement is purely algorithmic.
+
+What this does NOT tell us:
+- Whether the improvement holds at much longer horizons (50k+ steps) or larger models
+- Whether it generalizes across different datasets or model sizes
+- Whether the effect size is practically meaningful for downstream tasks (0.028 BPB is measurable but modest)
+
+---
+
+## Experimental Caveats
+
+**Reduced dataset**: All Enigma runs used only ~3 data shards out of the full 6543-shard ClimbMix-400B dataset. The full dataset has `shard_00000.parquet` through `shard_06542.parquet` (last shard is validation). Our runs trained on ~3 train shards + 1 validation shard. This means:
+- The model sees repeated data within 20k steps (data recycling / multiple epochs)
+- Results may not transfer to the full-data regime where the model sees each example once
+- Optimizer mutations that help with data-limited training may not help (or may help differently) at full scale
+
+**Small model**: All runs use GPT-2 scale (12 layers, 768 dim, 6 heads, ~124M params). Optimizer behavior can change at larger scales.
+
+**Small batch**: Batch size is 1024 tokens (device_batch=2, seq_len=512, grad_accum=1). Production runs at larger batch sizes where gradient noise characteristics differ.
+
+**Single seed**: Each mutation was tested with seed=42 only. No multi-seed robustness validation.
+
+**Single GPU**: All runs on a single B200. Production uses distributed training with `DistMuonAdamW` which has different communication/sharding patterns.
+
+These caveats mean the results are **directional signal**, not deployment-ready evidence. The optimizer mutations are worth investigating further at scale, but the exact BPB deltas may not reproduce.
+
+---
+
 ## Current Frontier (Stage 5 Complete)
 
 **Best result: H64_H60_H73 = 1.3979 BPB at 20k steps** — beats production baseline (1.4260) by **+0.028 BPB**.
