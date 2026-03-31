@@ -18,33 +18,6 @@ Enigma is a systematic hypothesis-test loop for discovering optimizer improvemen
 4. Scoring by validation BPB delta vs unpatched production baseline
 5. Documenting results, negative knowledge, and meta-lessons in postmortems
 
-### Cluster Access
-
-- **Slurm cluster**: `user54@35.84.33.219` (login node)
-- **Shared filesystem**: `/mnt/sharefs/user54/nanoe/`
-- **Repo on cluster**: `$HOME/nanoe` (rsync'd from local)
-- **GPU**: NVIDIA B200 (183 GB VRAM)
-- **Partition**: `priority`
-- **Critical env var**: `export TORCHDYNAMO_DISABLE=1` (triton compilation fails on this cluster, must disable torch.compile)
-
-### How to Deploy and Run
-
-```bash
-# From local machine — sync repo to cluster
-rsync -avz --exclude='.git' --exclude='__pycache__' --exclude='.venv' \
-  /Users/ankit/Documents/dev/RL/nanoe/nanoevolve/ \
-  user54@35.84.33.219:~/nanoe/
-
-# On the cluster — submit job
-ssh user54@35.84.33.219
-cd ~/nanoe/runs/enigma_s4_prod
-sbatch slurm_s4.sh
-
-# Monitor
-squeue -u user54
-# Results appear in runs/enigma_s4_prod/results/<mutation>_real.json
-```
-
 ---
 
 ## Enigma Stage History
